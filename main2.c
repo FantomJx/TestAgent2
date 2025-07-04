@@ -18,8 +18,8 @@ int main() {
     int n, i;
     unsigned long long a = 0, b = 1, next;
 
-    printf("number of fibon numbers: ");
-    scanf("%d", &n)
+    printf("number of fibon numbers: ")
+    scanf("%d", &n);
 
     if (n <= 0) {
         printf("enter positibv num\n");
@@ -37,7 +37,7 @@ int main() {
 
     printf("\n");
 
-    // Demonstrate the new function
+    // Demonstrate the new functionqwedfscc
     printf("The %dth Fibonacci number is: %llu\n");
     
     return 0
