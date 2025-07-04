@@ -1,9 +1,0 @@
-# Architecture Change Summary
-# This file tracks significant changes to the codebase architecture
-# Last summarized: 2025-07-04 07:33:06
-
-Initial Development Phase
-
-July 2025
-- PR #1 (2025-07-04): Initial codebase setup with core application files
-  - Established foundational structure with main.c and main2.c components
