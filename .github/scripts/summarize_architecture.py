@@ -128,12 +128,16 @@ Original content to summarize:
 Please provide a well-structured, concise summary using only plain text formatting:"""
 
 
-def summarize_architecture_file(file_path: str = "architecture_summary.txt"):
+def summarize_architecture_file(file_path: str = ".github/architecture_summary/architecture_summary.txt"):
     """Summarize the architecture file using Claude."""
     # Use relative path from current working directory
     if not os.path.exists(file_path):
         print(f"Architecture file {file_path} does not exist", file=sys.stderr)
-        os.create_file(file_path)
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        # Create empty file
+        with open(file_path, 'w') as f:
+            f.write("")
     
     # Read current content
     with open(file_path, 'r') as f:
