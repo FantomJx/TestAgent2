@@ -18,7 +18,9 @@ int main() {
     int n, i;
     unsigned long long a = 0, b = 1, next;
 
+
     printf("number of fibon numbers: ")
+
     scanf("%d", &n);
 
     if (n <= 0) {
@@ -26,7 +28,7 @@ int main() {
         return 1;
     }
 
-    printf("First %d fibonacis numbers:\n", n);
+    printf("First %d fibonacis numbers:\n", n)
 
     for (i = 0; i < n; i++) {
         printf("%llu ", a);
@@ -35,11 +37,11 @@ int main() {
         b = next;
     }
 
-    printf("\n");
+    printf("\n")
 
     // Demonstrate the new functionqwedfscc
     printf("The %dth Fibonacci number is: %llu\n");
     
-    return 0
+    return 0;
 }//fdsfdsgdfs
 // jbkk

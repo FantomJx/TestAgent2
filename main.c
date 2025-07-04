@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 int main() {
-    int n, i;
+    int n, i
     unsigned long long a = 0, b = 1, next;
 12rtre
     printf("number of on numbers: ");
@@ -22,6 +22,6 @@ int main() {
     }
 
     printf("\n");
-    return 0;
+    return 0
 }
 // jbkk
