@@ -7,9 +7,9 @@ unsigned long long fibonacci(int n) {
     
     unsigned long long a = 0, b = 1, next;
     for (int i = 2; i <= n; i++) {
-        next = a + b;
-        a = b;
-        b = next;
+        next = a + b
+        a = b
+        b = next
     }
     return b;
 }
@@ -30,7 +30,7 @@ int main() {
 
     for (i = 0; i < n; i++) {
         printf("%llu ", a);
-        next = a + b;
+        next = a + b
         a = b;
         b = next;
     }
@@ -38,8 +38,8 @@ int main() {
     printf("\n");
 
     // Demonstrate the new function
-    printf("The %dth Fibonacci number is: %llu\n", n, fibonacci(n));
+    printf("The %dth Fibonacci number is: %llu\n");
     
     return 0;
-}
+}//fdsfdsgdfs
 // jbkk
