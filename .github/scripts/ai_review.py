@@ -55,6 +55,38 @@ def create_openai_payload(model: str, prompt: str) -> Dict[str, Any]:
 
 def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
     """Call Claude API and return the response content."""
+    # Log payload details before making the API call
+    payload_str = json.dumps(payload, indent=2)
+    payload_size = len(payload_str)
+    prompt_content = payload.get('messages', [{}])[0].get('content', '')
+    prompt_length = len(prompt_content)
+    
+    print(f"\n{'='*80}", file=sys.stderr)
+    print(f"CLAUDE API CALL (AI Review)", file=sys.stderr)
+    print(f"{'='*80}", file=sys.stderr)
+    print(f"Model: {payload.get('model', 'unknown')}", file=sys.stderr)
+    print(f"Payload size: {payload_size:,} bytes", file=sys.stderr)
+    print(f"Prompt length: {prompt_length:,} characters", file=sys.stderr)
+    print(f"Max tokens: {payload.get('max_tokens', 'unknown')}", file=sys.stderr)
+    
+    # Log warning if payload is very large
+    if payload_size > 100000:  # 100k bytes
+        print(f"WARNING: Large payload detected ({payload_size:,} bytes)", file=sys.stderr)
+
+    if prompt_length > 5000:  # 5k characters
+        print(f"WARNING: Very long prompt detected ({prompt_length:,} characters)", file=sys.stderr)
+    
+    print(f"\nFULL PAYLOAD BEING SENT:", file=sys.stderr)
+    print(f"{'-'*40}", file=sys.stderr)
+    print(payload_str, file=sys.stderr)
+    print(f"{'-'*40}", file=sys.stderr)
+    
+    print(f"\nFULL PROMPT CONTENT:", file=sys.stderr)
+    print(f"{'-'*40}", file=sys.stderr)
+    print(prompt_content, file=sys.stderr)
+    print(f"{'-'*40}", file=sys.stderr)
+    print(f"{'='*80}\n", file=sys.stderr)
+    
     with open('/tmp/claude_payload.json', 'w') as f:
         json.dump(payload, f)
     
@@ -70,10 +102,21 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
         print(f'Claude API call failed: {result.stderr}', file=sys.stderr)
         return '[]'
     
+    print(f"Claude API response status: success", file=sys.stderr)
+    
     try:
         data = json.loads(result.stdout)
         if 'error' in data:
-            print(f'Claude API Error: {data["error"]}', file=sys.stderr)
+            error_info = data['error']
+            error_type = error_info.get('type', 'unknown')
+            error_message = error_info.get('message', 'unknown error')
+            print(f'Claude API Error - Type: {error_type}, Message: {error_message}', file=sys.stderr)
+            
+            # Check for common payload size related errors
+            if 'too_large' in error_message.lower() or 'limit' in error_message.lower():
+                print(f'ERROR: Payload may be too large for Claude API', file=sys.stderr)
+            
+            return '[]'
             return '[]'
         
         if 'content' in data and isinstance(data['content'], list) and len(data['content']) > 0:
@@ -116,6 +159,33 @@ def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
 def create_review_prompt(diff: str) -> str:
     """Create the review prompt for the AI model."""
     architecture_context = read_architecture_context()
+    
+    # Log diff details for debugging
+    diff_lines = diff.count('\n')
+    diff_length = len(diff)
+    
+    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"AI REVIEW - DIFF DETAILS", file=sys.stderr)
+    print(f"{'='*60}", file=sys.stderr)
+    print(f"Diff Lines: {diff_lines:,}", file=sys.stderr)
+    print(f"Diff Characters: {diff_length:,}", file=sys.stderr)
+    
+    print(f"\nFULL DIFF CONTENT:", file=sys.stderr)
+    print(f"{'-'*30}", file=sys.stderr)
+    print(diff, file=sys.stderr)
+    print(f"{'-'*30}", file=sys.stderr)
+    
+    print(f"\nARCHITECTURE CONTEXT:", file=sys.stderr)
+    print(f"{'-'*30}", file=sys.stderr)
+    print(architecture_context, file=sys.stderr)
+    print(f"{'-'*30}", file=sys.stderr)
+    print(f"{'='*60}\n", file=sys.stderr)
+    
+    # Truncate diff if it's too large to avoid API limits
+    max_diff_length = 80000  # Conservative limit for diff content
+    if diff_length > max_diff_length:
+        print(f"WARNING: Diff is very large ({diff_length:,} chars), truncating to {max_diff_length:,} chars", file=sys.stderr)
+        diff = diff[:max_diff_length] + "\n... (diff truncated due to size)"
     
     return f"""You are a helpful and diligent code assistant. Review the following unified diff and provide line-by-line feedback for specific issues.
 
@@ -175,6 +245,31 @@ def get_ai_review(model: str, diff: str) -> str:
         return call_openai_api(api_key, payload)
 
 
+def filter_github_files_from_diff(diff: str) -> str:
+    """Filter out .github files from the diff content."""
+    lines = diff.split('\n')
+    filtered_lines = []
+    skip_file = False
+    
+    for line in lines:
+        if line.startswith('diff --git'):
+            # Check if this is a .github file
+            parts = line.split()
+            if len(parts) >= 4:
+                file_path = parts[3][2:]  # Remove "b/" prefix
+                if file_path.startswith('.github/'):
+                    skip_file = True
+                    print(f"Filtering out .github file from AI review: {file_path}", file=sys.stderr)
+                    continue
+                else:
+                    skip_file = False
+        
+        if not skip_file:
+            filtered_lines.append(line)
+    
+    return '\n'.join(filtered_lines)
+
+
 if __name__ == "__main__":
     # Get environment variables
     diff_b64 = os.environ.get('DIFF_B64', '')
@@ -187,6 +282,16 @@ if __name__ == "__main__":
     # Decode diff
     import base64
     diff = base64.b64decode(diff_b64).decode('utf-8')
+    
+    # Filter out .github files from diff
+    diff = filter_github_files_from_diff(diff)
+    
+    # Check if there's any meaningful diff left after filtering
+    if not diff.strip() or not any(line.startswith('diff --git') for line in diff.split('\n')):
+        print("No significant files to analyze after filtering .github files", file=sys.stderr)
+        review_b64 = base64.b64encode("[]".encode('utf-8')).decode('utf-8')
+        print(f"review_b64={review_b64}")
+        sys.exit(0)
     
     # Get review
     review = get_ai_review(model, diff)
