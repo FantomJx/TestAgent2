@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened]
 
 env:
-  LINE_THRESHOLD: 0
+  LINE_THRESHOLD: 200
 
 jobs:
   claude-review:
