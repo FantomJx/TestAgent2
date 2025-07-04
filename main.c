@@ -4,12 +4,12 @@ int main() {
     int n, i;
     unsigned long long a = 0, b = 1, next;
 
-    printf("number of fibon numbers: ");
-    scanf("%d", &n);
+    printf("number of on numbers: ");
+    scanf("%d", &n)
 
     if (n <= 0) {
         printf("enter positibv num\n");
-        return 1;
+        return 1
     }
     // jbkk
     printf("First jjfibonacis numbers:\n", n);
