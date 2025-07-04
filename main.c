@@ -3,7 +3,7 @@
 int main() {
     int n, i
     unsigned long long a = 0, b = 1, next;
-12
+12rtre
     printf("number of on numbers: ");
     scanf("%d", &n)
 // ewqewqewq
