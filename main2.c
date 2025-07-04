@@ -26,7 +26,7 @@ int main() {
         return 1;
     }
 
-    printf("First %d fibonacis numbers:\n", n);
+    printf("First %d fibonacis numbers:\n", n)
 
     for (i = 0; i < n; i++) {
         printf("%llu ", a);
