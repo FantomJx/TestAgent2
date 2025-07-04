@@ -10,7 +10,7 @@ def create_claude_payload(model: str, prompt: str) -> dict:
     """Create payload for Claude API."""
     return {
         "model": model,
-        "max_tokens": 4000,
+        "max_tokens": 10000,
         "messages": [
             {
                 "role": "user",
@@ -22,6 +22,38 @@ def create_claude_payload(model: str, prompt: str) -> dict:
 
 def call_claude_api(api_key: str, payload: dict) -> str:
     """Call Claude API and return the response content."""
+    # Log payload details before making the API call
+    payload_str = json.dumps(payload, indent=2)
+    payload_size = len(payload_str)
+    prompt_content = payload.get('messages', [{}])[0].get('content', '')
+    prompt_length = len(prompt_content)
+    
+    print(f"\n{'='*80}", file=sys.stderr)
+    print(f"CLAUDE API CALL (Summarization)", file=sys.stderr)
+    print(f"{'='*80}", file=sys.stderr)
+    print(f"Model: {payload.get('model', 'unknown')}", file=sys.stderr)
+    print(f"Payload size: {payload_size:,} bytes", file=sys.stderr)
+    print(f"Prompt length: {prompt_length:,} characters", file=sys.stderr)
+    print(f"Max tokens: {payload.get('max_tokens', 'unknown')}", file=sys.stderr)
+    
+     # Log warning if payload is very large
+    if payload_size > 100000:  # 100k bytes
+        print(f"WARNING: Large payload detected ({payload_size:,} bytes)", file=sys.stderr)
+
+    if prompt_length > 5000:  # 5k characters
+        print(f"WARNING: Very long prompt detected ({prompt_length:,} characters)", file=sys.stderr)
+    
+    print(f"\nFULL PAYLOAD BEING SENT:", file=sys.stderr)
+    print(f"{'-'*40}", file=sys.stderr)
+    print(payload_str, file=sys.stderr)
+    print(f"{'-'*40}", file=sys.stderr)
+    
+    print(f"\nFULL PROMPT CONTENT:", file=sys.stderr)
+    print(f"{'-'*40}", file=sys.stderr)
+    print(prompt_content, file=sys.stderr)
+    print(f"{'-'*40}", file=sys.stderr)
+    print(f"{'='*80}\n", file=sys.stderr)
+    
     with open('/tmp/claude_summarize_payload.json', 'w') as f:
         json.dump(payload, f)
     
@@ -54,6 +86,28 @@ def call_claude_api(api_key: str, payload: dict) -> str:
 
 def create_summarization_prompt(content: str) -> str:
     """Create prompt for summarizing architecture changes."""
+    # Log content details for debugging
+    content_lines = content.count('\n')
+    content_length = len(content)
+    
+    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"SUMMARIZATION - CONTENT DETAILS", file=sys.stderr)
+    print(f"{'='*60}", file=sys.stderr)
+    print(f"Content Lines: {content_lines:,}", file=sys.stderr)
+    print(f"Content Characters: {content_length:,}", file=sys.stderr)
+    
+    print(f"\nFULL CONTENT TO SUMMARIZE:", file=sys.stderr)
+    print(f"{'-'*30}", file=sys.stderr)
+    print(content, file=sys.stderr)
+    print(f"{'-'*30}", file=sys.stderr)
+    print(f"{'='*60}\n", file=sys.stderr)
+    
+    # Truncate content if it's too large to avoid API limits
+    max_content_length = 60000  # Conservative limit for summarization
+    if content_length > max_content_length:
+        print(f"WARNING: Content is very large ({content_length:,} chars), truncating to {max_content_length:,} chars", file=sys.stderr)
+        content = content[:max_content_length] + "\n... (content truncated due to size)"
+    
     return f"""You are tasked with summarizing a long architecture change summary file. This file tracks significant changes to a codebase over time.
 
 Please create a concise summary that:
@@ -76,7 +130,7 @@ def summarize_architecture_file(file_path: str = "architecture_summary.txt"):
     # Use relative path from current working directory
     if not os.path.exists(file_path):
         print(f"Architecture file {file_path} does not exist", file=sys.stderr)
-        return False
+        os.create_file(file_path)
     
     # Read current content
     with open(file_path, 'r') as f:
