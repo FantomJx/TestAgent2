@@ -19,7 +19,7 @@ int main() {
     unsigned long long a = 0, b = 1, next;
 
     printf("number of fibon numbers: ");
-    scanf("%d", &n)
+    scanf("%d", &n);
 
     if (n <= 0) {
         printf("enter positibv num\n");
@@ -35,11 +35,11 @@ int main() {
         b = next;
     }
 
-    printf("\n");
+    printf("\n")
 
     // Demonstrate the new function
     printf("The %dth Fibonacci number is: %llu\n");
     
-    return 0
+    return 0;
 }//fdsfdsgdfs
 // jbkk
