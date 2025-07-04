@@ -111,18 +111,21 @@ def create_summarization_prompt(content: str) -> str:
     return f"""You are tasked with summarizing a long architecture change summary file. This file tracks significant changes to a codebase over time.
 
 Please create a concise summary that:
-1. Preserves the most important architectural decisions and changes
-2. Groups similar changes together
-3. Maintains chronological context for major milestones
-4. Reduces the total length by at least 60% while keeping essential information
-5. Focuses on structural changes, new components, major refactoring, and significant feature additions
+1. Uses ONLY plain text formatting - no markdown, no asterisks, no bold, no italics
+2. Preserves the most important architectural decisions and changes
+3. Groups similar changes together
+4. Maintains chronological context for major milestones
+5. Reduces the total length by at least 60% while keeping essential information
+6. Focuses on structural changes, new components, major refactoring, and significant feature additions
+7. Excludes summary statistics, notes, and meta-commentary
+8. Uses simple section headers without special formatting
 
-The summary should start with a header explaining it's a condensed version, followed by the key architectural evolution points.
+The summary should be clean, simple text organized by development phases and time periods.
 
 Original content to summarize:
 {content}
 
-Please provide a well-structured, concise summary:"""
+Please provide a well-structured, concise summary using only plain text formatting:"""
 
 
 def summarize_architecture_file(file_path: str = "architecture_summary.txt"):
