@@ -4,14 +4,17 @@ from firebase_client import FirebaseClient
 
 def main():
     try:
-        # Initialize Firebase client which will handle PROJECT-NAME
-        firebase_client = FirebaseClient()
+        # Initialize Firebase client with project name
+        project_name = "test"  # Hardcoded project name
+        firebase_client = FirebaseClient(project_name=project_name)
         
         # Get required environment variables
         repository = os.environ['REPOSITORY']
         pr_number = int(os.environ['PR_NUMBER'])
         diff_b64 = os.environ['DIFF_B64']
     
+        print(f"Tracking architecture for project: {project_name}, repository: {repository}")
+        
         # Decode the diff
         diff = base64.b64decode(diff_b64).decode('utf-8')
         
@@ -31,6 +34,8 @@ def main():
             metadata=metadata
         )
         
+        print(f"Architecture change added with ID: {change_id}")
+        
         # Check if we should regenerate the summary
         should_summarize = firebase_client.should_summarize(repository)
         
@@ -42,6 +47,14 @@ def main():
                 repository=repository,
                 summary=current_summary.get('summary', ''),
                 changes_count=changes_count
+            )
+            print(f"Architecture summary updated with changes_count: {changes_count}")
+        else:
+            print("No existing summary found, creating new one")
+            firebase_client.update_architecture_summary(
+                repository=repository,
+                summary="Initial architecture summary",
+                changes_count=1
             )
         
         print(f"should_summarize={str(should_summarize).lower()}")

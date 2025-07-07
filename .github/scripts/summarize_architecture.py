@@ -6,9 +6,9 @@ import anthropic
 
 def main():
     try:
-        firebase_client = FirebaseClient()
-        repository = os.environ['REPOSITORY']
         project_name = "test"  # Hardcoded project name
+        firebase_client = FirebaseClient(project_name=project_name)
+        repository = os.environ['REPOSITORY']
         
         print(f"Summarizing architecture for project: {project_name}, repository: {repository}")
         
@@ -18,6 +18,8 @@ def main():
         if not recent_changes:
             print("No recent changes found, skipping summarization")
             return
+        
+        print(f"Found {len(recent_changes)} recent changes to summarize")
         
         # Prepare the changes data for AI analysis
         changes_text = ""
@@ -65,6 +67,7 @@ def main():
         )
         
         print(f"Architecture summary updated for {repository} in project {project_name}")
+        print(f"Summary: {architecture_summary[:200]}...")
         
     except Exception as e:
         print(f"Error summarizing architecture: {e}")
