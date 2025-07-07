@@ -58,15 +58,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
+        
           git add . || true
-          
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+
           # Check if we can push (test PAT permissions)
           CAN_PUSH=true
           if ! git ls-remote --exit-code origin HEAD >/dev/null 2>&1; then
