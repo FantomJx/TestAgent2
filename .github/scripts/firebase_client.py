@@ -4,38 +4,44 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
 import base64
-
-# Firebase configuration
-FIREBASE_CONFIG = {
-  "apiKey": "AIzaSyCbKGo5PFFNf3GDrZJVJsf3ClNLpsIy6o4",
-  "authDomain": "pr-agent-21ba8.firebaseapp.com",
-  "projectId": "pr-agent-21ba8",
-  "storageBucket": "pr-agent-21ba8.firebasestorage.app",
-  "messagingSenderId": "1066689158738",
-  "appId": "1:1066689158738:web:02c037458e1bb7869a498b",
-  "measurementId": "G-5WP0PCRZMN"
-}
+import logging
 
 class FirebaseClient:
-    def __init__(self):
-        if not firebase_admin._apps:
-            # Initialize Firebase Admin SDK using project ID from config
-            # Note: Admin SDK doesn't use apiKey and other client-side config values
-            # But we use the projectId from the config
-            cred = credentials.ApplicationDefault()
-            firebase_admin.initialize_app(cred, {
-                'projectId': FIREBASE_CONFIG['projectId']
-            })
-        
-        self.db = firestore.client()
+    def __init__(self, service_account_path=None):
+        try:
+            if not firebase_admin._apps:
+                # Use provided path or default
+                if not service_account_path:
+                    service_account_path = os.path.join(
+                        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                        "pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json"
+                    )
+                
+                if not os.path.exists(service_account_path):
+                    raise FileNotFoundError(f"Firebase credentials file not found at: {service_account_path}")
+                    
+                cred = credentials.Certificate(service_account_path)
+                firebase_admin.initialize_app(cred)
+            
+            self.db = firestore.client()
+        except Exception as e:
+            logging.error(f"Failed to initialize Firebase: {str(e)}")
+            raise
     
     def get_architecture_summary(self, repository):
         """Get the current architecture summary for a repository"""
-        doc_ref = self.db.collection('architecture_summaries').document(repository.replace('/', '_'))
-        doc = doc_ref.get()
-        if doc.exists:
-            return doc.to_dict()
-        return None
+        if not repository:
+            return None
+            
+        try:
+            doc_ref = self.db.collection('architecture_summaries').document(repository.replace('/', '_'))
+            doc = doc_ref.get()
+            if doc.exists:
+                return doc.to_dict()
+            return None
+        except Exception as e:
+            logging.error(f"Error fetching architecture summary: {str(e)}")
+            return None
     
     def update_architecture_summary(self, repository, summary, changes_count=0):
         """Update the architecture summary for a repository"""
