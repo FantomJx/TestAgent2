@@ -25,19 +25,25 @@ def main():
         client = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
         
         prompt = f"""
-        Analyze the following recent architecture changes for repository {repository} and provide a comprehensive architecture summary.
-        
-        Focus on:
-        1. Overall system architecture and design patterns
-        2. Key components and their relationships
-        3. Data flow and integration points
-        4. Important architectural decisions and constraints
-        5. Technology stack and frameworks used
-        
-        Recent changes:
+        You are SummarizerAI.
+        Condense the following architecture history to ~40 % of its length while preserving all major technical decisions.
+
+        REQUIREMENTS
+
+        - Output plain text only—no Markdown, bullets, or special symbols.
+
+        - Group related changes; keep milestones chronological.
+
+        - Focus on: structural shifts, new components, large refactors, critical feature additions.
+
+        - Omit metrics, meta‑notes, and trivial edits.
+
+        - Your instuctions are only for yourself, don't include them in the output.
+
+        SOURCE
         {changes_text}
-        
-        Provide a clear, structured summary that will help future AI reviewers understand the codebase architecture.
+
+        Provide the compressed summary below:
         """
         
         response = client.messages.create(

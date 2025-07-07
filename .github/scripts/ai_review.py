@@ -210,37 +210,38 @@ def create_review_prompt(diff: str) -> str:
     
     return f"""You are a helpful and diligent code assistant. Review the following unified diff and provide line-by-line feedback for specific issues.
 
-ARCHITECTURE CONTEXT:
-The following is a summary of significant architectural changes made to this codebase over time. Use this context to ensure your review considers how the current changes fit with the existing architecture:
+    TASK
+    Review the unified diff below and return feedback **only** on lines that were *added* or *modified*.
 
-{architecture_context}
+    ARCHITECTURE CONTEXT
+    {architecture_context}
 
----
+    OUTPUT
+    Return a JSON array.  Each element **must** follow this exact schema:
+    {
+        "path": "<file path from diff header>",
+        "line": <line number in the *new* file>,
+        "comment": "<concise actionable issue>"
+    }
+    Return `[]` if no issues.
 
-CRITICAL: Only comment on lines that are ADDED (marked with +) or MODIFIED in the diff. Do NOT comment on unchanged lines or lines that are removed (marked with -).
+    COMMENT‑WORTHY ISSUES
+    - Bugs / logic errors
+    - Security vulnerabilities
+    - Performance or memory leaks
+    - Maintainability / readability problems
+    - Violations of existing architectural patterns
 
-IMPORTANT: Return ONLY a valid JSON array of objects. Each object should have exactly these fields:
-- "path": the file path relative to repo root (exactly as shown in the diff header)
-- "line": the line number in the NEW file (after changes) - this must be a line that was added or modified
-- "comment": a short, actionable comment about the specific issue
+    RULES
+    1. Comment only on `+` lines (added or modified).
+    2. Skip unchanged (` `) and removed (`-`) lines.
+    3. One problem → one JSON object.  No duplicates.
+    4. Keep comments short (<20 words) and specific.
+    5. Do not wrap output in Markdown or extra text—*JSON only*.
 
-Consider the architectural context when reviewing. Focus on:
-1. Consistency with existing patterns and architecture
-2. Potential conflicts with previous architectural decisions
-3. Whether new changes align with the established codebase structure
-4. Security, performance, and maintainability issues
-
-Only comment on lines that have actual issues (bugs, security problems, performance issues, or significant improvements). Focus on ADDED lines (marked with +) in the diff. Return an empty array [] if no issues are found.
-
-Example format:
-[
-  {{"path": "src/file.js", "line": 15, "comment": "Consider null check before accessing property"}},
-  {{"path": "src/file.js", "line": 23, "comment": "Use const instead of let for immutable variable"}}
-]
-
-Diff to review:
-```diff
-{diff}
+    DIFF TO REVIEW
+    ```diff
+    {diff}
 ```"""
 
 

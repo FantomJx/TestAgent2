@@ -8,17 +8,12 @@ import base64
 class FirebaseClient:
     def __init__(self):
         if not firebase_admin._apps:
-            # Initialize Firebase Admin SDK
-            private_key = os.environ['FIREBASE_PRIVATE_KEY'].replace('\\n', '\n')
-            cred_dict = {
-                "type": "service_account",
-                "project_id": os.environ['FIREBASE_PROJECT_ID'],
-                "private_key": private_key,
-                "client_email": os.environ['FIREBASE_CLIENT_EMAIL'],
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token"
-            }
-            cred = credentials.Certificate(cred_dict)
+            # Initialize Firebase Admin SDK using service account key JSON file
+            service_account_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                "pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json"
+            )
+            cred = credentials.Certificate(service_account_path)
             firebase_admin.initialize_app(cred)
         
         self.db = firestore.client()
