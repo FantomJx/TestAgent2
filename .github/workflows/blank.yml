@@ -57,9 +57,6 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-
-          
-          git add . || true
           
           # Check if we can push (test PAT permissions)
           CAN_PUSH=true
@@ -68,7 +65,7 @@ jobs:
             CAN_PUSH=false
           fi
           
-          # Pull latest changes to avoid conflicts
+          # Pull latest changes to avoid conflicts BEFORE staging files
           git fetch origin ${{ github.head_ref }}
           
           # Handle rebase conflicts gracefully
@@ -78,7 +75,8 @@ jobs:
             exit 0
           fi
           
-          # Add and commit changes
+          # NOW add and commit changes after successful rebase
+          git add . || true
           git add architecture_summary.txt* || true
           
           # Only commit if there are changes
