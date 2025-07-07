@@ -110,10 +110,13 @@ jobs:
           
           # Check if PR has "important change" or "important changes" label
           HAS_IMPORTANT_LABEL=false
+          HAS_IMPORTANT_TITLE=false
           if echo '${{ toJSON(github.event.pull_request.labels.*.name) }}' | grep -q -E "(important change|important changes)"; then
             HAS_IMPORTANT_LABEL=true
             echo "Found 'important change' or 'important changes' label"
-          elif echo '${{ github.event.pull_request.title }}' | grep -q -E "(#IMPORTANT-CHANGE|#IMPORTANT-CHANGES)"; then
+          fi
+          
+          if echo '${{ github.event.pull_request.title }}' | grep -q -E "(#IMPORTANT-CHANGE|#IMPORTANT-CHANGES)"; then
             HAS_IMPORTANT_TITLE=true
             echo "Found important change marker in title"
           fi
