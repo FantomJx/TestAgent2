@@ -3,6 +3,7 @@ import json
 import base64
 import time
 import sys
+from datetime import datetime
 from firebase_client import FirebaseClient
 
 def retry_with_backoff(func, max_retries=3, base_delay=1):
@@ -36,6 +37,23 @@ def create_empty_context():
     context_json = json.dumps(empty_context)
     return base64.b64encode(context_json.encode('utf-8')).decode('utf-8')
 
+def read_local_architecture_summary():
+    """Read the local architecture summary file"""
+    try:
+        # Look for architecture_summary.txt in the project root
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        summary_path = os.path.join(project_root, 'architecture_summary.txt')
+        
+        if os.path.exists(summary_path):
+            with open(summary_path, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        else:
+            print(f"No local architecture summary found at {summary_path}", file=sys.stderr)
+            return None
+    except Exception as e:
+        print(f"Error reading local architecture summary: {e}", file=sys.stderr)
+        return None
+
 def main():
     repository = os.environ.get('REPOSITORY')
     project_name = "test"  # Hardcoded project name
@@ -51,6 +69,27 @@ def main():
             
             # Get current architecture summary
             architecture_summary = firebase_client.get_architecture_summary(repository)
+            
+            # If no architecture summary found, create one from local file
+            if not architecture_summary:
+                print(f"No architecture summary found for {repository} in project {project_name}", file=sys.stderr)
+                local_summary = read_local_architecture_summary()
+                if local_summary:
+                    print(f"Creating architecture summary for {repository} from local file", file=sys.stderr)
+                    try:
+                        firebase_client.update_architecture_summary(repository, local_summary, changes_count=0)
+                        architecture_summary = {
+                            'repository': repository,
+                            'summary': local_summary,
+                            'last_updated': datetime.utcnow().isoformat(),
+                            'changes_count': 0
+                        }
+                        print(f"Successfully created architecture summary for {repository}", file=sys.stderr)
+                    except Exception as e:
+                        print(f"Error creating architecture summary: {e}", file=sys.stderr)
+                        architecture_summary = None
+                else:
+                    print(f"No local architecture summary available to create Firebase entry", file=sys.stderr)
             
             # Get recent changes for additional context
             recent_changes = firebase_client.get_recent_changes(repository, limit=5)
