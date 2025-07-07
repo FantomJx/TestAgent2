@@ -108,7 +108,7 @@ jobs:
           
           # Check if PR has "important changes" label
           HAS_IMPORTANT_LABEL=false
-          if echo '${{ toJSON(github.event.pull_request.labels.*.name) }}' | grep -q "important changes"; then
+          if echo "${{ toJSON(github.event.pull_request.labels.*.name) }}" | grep -q "important changes"; then
             HAS_IMPORTANT_LABEL=true
             echo "Found 'important changes' label"
           fi
