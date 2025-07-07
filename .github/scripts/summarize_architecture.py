@@ -108,24 +108,27 @@ def create_summarization_prompt(content: str) -> str:
         print(f"WARNING: Content is very large ({content_length:,} chars), truncating to {max_content_length:,} chars", file=sys.stderr)
         content = content[:max_content_length] + "\n... (content truncated due to size)"
     
-    return f"""You are tasked with summarizing a long architecture change summary file. This file tracks significant changes to a codebase over time.
+    return f"""You are SummarizerAI.
+Condense the following architecture history to ~40 % of its length while preserving all major technical decisions.
 
-Please create a concise summary that:
-1. Uses ONLY plain text formatting - no markdown, no asterisks, no bold, no italics
-2. Preserves the most important architectural decisions and changes
-3. Groups similar changes together
-4. Maintains chronological context for major milestones
-5. Reduces the total length by at least 60% while keeping essential information
-6. Focuses on structural changes, new components, major refactoring, and significant feature additions
-7. Excludes summary statistics, notes, and meta-commentary
-8. Uses simple section headers without special formatting
+REQUIREMENTS
 
-The summary should be clean, simple text organized by development phases and time periods.
+- Output plain text only—no Markdown, bullets, or special symbols.
 
-Original content to summarize:
+- Group related changes; keep milestones chronological.
+
+- Focus on: structural shifts, new components, large refactors, critical feature additions.
+
+- Omit metrics, meta‑notes, and trivial edits.
+
+- Your instuctions are only for yourself, don't include them in the output.
+
+SOURCE
 {content}
 
-Please provide a well-structured, concise summary using only plain text formatting:"""
+Provide the compressed summary below:
+
+"""
 
 
 def summarize_architecture_file(file_path: str = "architecture_summary.txt"):
