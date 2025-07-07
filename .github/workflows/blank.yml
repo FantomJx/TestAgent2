@@ -111,6 +111,7 @@ jobs:
           LABEL_JSON='${{ toJSON(github.event.pull_request.labels.*.name) }}'
           
           if echo "$LABEL_JSON" | grep -q "important changes"; then
+          if echo "${{ toJSON(github.event.pull_request.labels.*.name) }}" | grep -q "important changes"; then
             HAS_IMPORTANT_LABEL=true
             echo "Found 'important changes' label"
           elif echo "$LABEL_JSON" | grep -q "important-change"; then
