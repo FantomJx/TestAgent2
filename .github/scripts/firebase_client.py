@@ -87,7 +87,7 @@ class FirebaseClient:
         """Get recent architecture changes for context"""
         try:
             query = (self.db.collection(self.project_name).document('architecture_changes').collection('changes')
-                    .where('repository', '==', repository)
+                    .where(filter=firestore.FieldFilter('repository', '==', repository))
                     .order_by('timestamp', direction=firestore.Query.DESCENDING)
                     .limit(limit))
             
