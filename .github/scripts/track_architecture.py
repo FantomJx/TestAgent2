@@ -156,7 +156,7 @@ def main():
         word_count = get_word_count("architecture_summary.txt")
         print(f"Architecture file word count: {word_count}", file=sys.stderr)
         
-        if word_count > 0:
+        if word_count > 400:
             print("Architecture file is large, will trigger summarization", file=sys.stderr)
             print("should_summarize=true")
         else:
