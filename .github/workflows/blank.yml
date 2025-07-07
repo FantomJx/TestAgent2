@@ -73,7 +73,8 @@ jobs:
 
       - name: Track architecture changes in Firebase
         id: track-arch
-        if: steps.check-important.outputs.is_important_change == 'true'
+        if: steps.check-important.outputs.is_important_change == 'true' && false  # Temporarily disabled
+        continue-on-error: true
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
@@ -89,7 +90,8 @@ jobs:
           python3 .github/scripts/track_architecture.py >> "$GITHUB_OUTPUT"
 
       - name: Summarize architecture if needed
-        if: steps.check-important.outputs.is_important_change == 'true' && contains(steps.track-arch.outputs.should_summarize, 'true')
+        if: steps.check-important.outputs.is_important_change == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
@@ -103,6 +105,7 @@ jobs:
 
       - name: Fetch architecture context from Firebase
         id: fetch-context
+        continue-on-error: true
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
