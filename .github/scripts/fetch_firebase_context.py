@@ -25,7 +25,7 @@ def retry_with_backoff(func, max_retries=3, base_delay=1):
 
 def create_empty_context():
     """Create empty context for fallback"""
-    project_name = "test"  # Hardcoded project name
+    project_name = "PR-AGENT"  # Hardcoded project name
     empty_context = {
         'architecture_summary': None,
         'recent_changes': [],
@@ -38,7 +38,7 @@ def create_empty_context():
 
 def main():
     repository = os.environ.get('REPOSITORY')
-    project_name = "test"  # Hardcoded project name
+    project_name = "PR-AGENT"  # Hardcoded project name
     
     if not repository:
         print("Error: REPOSITORY environment variable not set", file=sys.stderr)

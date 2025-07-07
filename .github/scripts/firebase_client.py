@@ -24,8 +24,6 @@ class FirebaseClient:
                 firebase_admin.initialize_app(cred)
             
             self.db = firestore.client()
-            # Use hardcoded project name
-            self.project_name = "test"
         except Exception as e:
             logging.error(f"Failed to initialize Firebase: {str(e)}")
             raise
@@ -37,7 +35,7 @@ class FirebaseClient:
             
         try:
             # Use project_name as the main collection path
-            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
+            doc_ref = self.db.document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
             doc = doc_ref.get()
             if doc.exists:
                 return doc.to_dict()
