@@ -68,6 +68,11 @@ jobs:
           # Pull latest changes to avoid conflicts
           git fetch origin ${{ github.head_ref }}
           
+          # Show git status after pull/rebase
+          echo "=== Git status after pull/rebase ==="
+          echo git status --porcelain
+          echo "=== End git status ==="
+
           # Handle rebase conflicts gracefully
           if ! git pull origin ${{ github.head_ref }} --rebase; then
             echo "Rebase failed, aborting and continuing without changes..."
@@ -75,10 +80,7 @@ jobs:
             exit 0
           fi
 
-          # Show git status after pull/rebase
-          echo "=== Git status after pull/rebase ==="
-          git status --porcelain
-          echo "=== End git status ==="
+          
 
           # Add and commit changes
           git add architecture_summary.txt* || true
