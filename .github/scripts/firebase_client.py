@@ -5,16 +5,27 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 import base64
 
+# Firebase configuration
+FIREBASE_CONFIG = {
+  "apiKey": "AIzaSyCbKGo5PFFNf3GDrZJVJsf3ClNLpsIy6o4",
+  "authDomain": "pr-agent-21ba8.firebaseapp.com",
+  "projectId": "pr-agent-21ba8",
+  "storageBucket": "pr-agent-21ba8.firebasestorage.app",
+  "messagingSenderId": "1066689158738",
+  "appId": "1:1066689158738:web:02c037458e1bb7869a498b",
+  "measurementId": "G-5WP0PCRZMN"
+}
+
 class FirebaseClient:
     def __init__(self):
         if not firebase_admin._apps:
-            # Initialize Firebase Admin SDK using service account key JSON file
-            service_account_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                "pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json"
-            )
-            cred = credentials.Certificate(service_account_path)
-            firebase_admin.initialize_app(cred)
+            # Initialize Firebase Admin SDK using project ID from config
+            # Note: Admin SDK doesn't use apiKey and other client-side config values
+            # But we use the projectId from the config
+            cred = credentials.ApplicationDefault()
+            firebase_admin.initialize_app(cred, {
+                'projectId': FIREBASE_CONFIG['projectId']
+            })
         
         self.db = firestore.client()
     
