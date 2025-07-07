@@ -60,8 +60,11 @@ jobs:
 
           
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
           git add . || true
           
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
           # Check if we can push (test PAT permissions)
