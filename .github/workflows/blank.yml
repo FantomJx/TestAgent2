@@ -70,7 +70,7 @@ jobs:
           
           # Show git status after pull/rebase
           echo "=== Git status after pull/rebase ==="
-          echo git status --porcelain
+          git status --porcelain
           echo "=== End git status ==="
 
           # Handle rebase conflicts gracefully
