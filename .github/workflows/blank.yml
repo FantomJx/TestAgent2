@@ -58,6 +58,11 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
+          # Show current git status before any operations
+          echo "=== Git status before operations ==="
+          git status --porcelain
+          echo "=== End git status ==="
+          
           # Check if we can push (test PAT permissions)
           CAN_PUSH=true
           if ! git ls-remote --exit-code origin HEAD >/dev/null 2>&1; then
@@ -75,12 +80,29 @@ jobs:
             exit 0
           fi
           
+          # Show git status after pull/rebase
+          echo "=== Git status after pull/rebase ==="
+          git status --porcelain
+          echo "=== End git status ==="
+          
           # Add and commit changes
           git add architecture_summary.txt* || true
+          
+          # Show git status after adding files
+          echo "=== Git status after adding files ==="
+          git status --porcelain
+          echo "=== Staged changes ==="
+          git diff --cached --name-status
+          echo "=== End staged changes ==="
           
           # Only commit if there are changes
           if ! git diff --cached --quiet; then
             git commit -m "Update architecture summary [skip ci]" || true
+            
+            # Show git status after commit
+            echo "=== Git status after commit ==="
+            git status --porcelain
+            echo "=== End git status ==="
             
             # Only attempt push if PAT permissions seem adequate
             if [ "$CAN_PUSH" = "true" ]; then
