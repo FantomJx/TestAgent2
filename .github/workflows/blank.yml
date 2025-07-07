@@ -6,13 +6,19 @@ on:
 
 env:
   LINE_THRESHOLD: 200
+  IMPORTANT_CHANGE_MARKERS: '#IMPORTANT-CHANGE,#IMPORTANT-CHANGES'
+  IMPORTANT_CHANGE_LABELS: 'important change,important changes'
 
 jobs:
   claude-review:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       pull-requests: write
       contents: read
+    
+    # Skip if PR is from a fork to avoid secrets exposure or if it's a draft
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false
 
     steps:
       - name: Checkout full repo history
@@ -40,9 +46,35 @@ jobs:
           LINE_COUNT=$(echo "$DIFF" | grep -c '^[+-]' || echo "0")
           echo "line_count=$LINE_COUNT" >> "$GITHUB_OUTPUT"
 
+      - name: Check for important changes
+        id: check-important
+        run: |
+          # Check for important change markers in title
+          HAS_IMPORTANT_TITLE=false
+          if echo '${{ github.event.pull_request.title }}' | grep -q -E '(#IMPORTANT-CHANGE|#IMPORTANT-CHANGES)'; then
+            HAS_IMPORTANT_TITLE=true
+          fi
+          
+          # Check for important change labels
+          HAS_IMPORTANT_LABEL=false
+          if echo '${{ toJSON(github.event.pull_request.labels.*.name) }}' | grep -q -E "(important change|important changes)"; then
+            HAS_IMPORTANT_LABEL=true
+          fi
+          
+          # Determine if this is an important change
+          IS_IMPORTANT_CHANGE=false
+          if [ "$HAS_IMPORTANT_TITLE" = "true" ] || [ "$HAS_IMPORTANT_LABEL" = "true" ]; then
+            IS_IMPORTANT_CHANGE=true
+          fi
+          
+          echo "has_important_title=$HAS_IMPORTANT_TITLE" >> "$GITHUB_OUTPUT"
+          echo "has_important_label=$HAS_IMPORTANT_LABEL" >> "$GITHUB_OUTPUT"
+          echo "is_important_change=$IS_IMPORTANT_CHANGE" >> "$GITHUB_OUTPUT"
+
       - name: Track architecture changes in Firebase
         id: track-arch
-        if: contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES') || contains(toJSON(github.event.pull_request.labels.*.name), 'important change') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')
+        if: steps.check-important.outputs.is_important_change == 'true' && false  # Temporarily disabled
+        continue-on-error: true
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
@@ -58,7 +90,8 @@ jobs:
           python3 .github/scripts/track_architecture.py >> "$GITHUB_OUTPUT"
 
       - name: Summarize architecture if needed
-        if: (contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES') || contains(toJSON(github.event.pull_request.labels.*.name), 'important change') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')) && contains(steps.track-arch.outputs.should_summarize, 'true')
+        if: steps.check-important.outputs.is_important_change == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
@@ -72,6 +105,7 @@ jobs:
 
       - name: Fetch architecture context from Firebase
         id: fetch-context
+        continue-on-error: true
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
@@ -86,19 +120,8 @@ jobs:
         run: |
           THRESHOLD=${{ env.LINE_THRESHOLD }}
           LINES=${{ steps.diff.outputs.line_count }}
-          
-          # Check if PR has "important change" or "important changes" label
-          HAS_IMPORTANT_LABEL=false
-          HAS_IMPORTANT_TITLE=false
-          if echo '${{ toJSON(github.event.pull_request.labels.*.name) }}' | grep -q -E "(important change|important changes)"; then
-            HAS_IMPORTANT_LABEL=true
-            echo "Found 'important change' or 'important changes' label"
-          fi
-          
-          if echo '${{ github.event.pull_request.title }}' | grep -q -E "(#IMPORTANT-CHANGE|#IMPORTANT-CHANGES)"; then
-            HAS_IMPORTANT_TITLE=true
-            echo "Found important change marker in title"
-          fi
+          HAS_IMPORTANT_LABEL=${{ steps.check-important.outputs.has_important_label }}
+          HAS_IMPORTANT_TITLE=${{ steps.check-important.outputs.has_important_title }}
           
           # Set outputs for use in next steps
           echo "has_important_label=$HAS_IMPORTANT_LABEL" >> "$GITHUB_OUTPUT"
