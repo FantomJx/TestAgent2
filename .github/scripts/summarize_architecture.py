@@ -6,7 +6,8 @@ import anthropic
 
 def main():
     try:
-        firebase_client = FirebaseClient()
+        project_name = "test"  # Hardcoded project name
+        firebase_client = FirebaseClient(project_name=project_name)
         repository = os.environ['REPOSITORY']
         
         if 'content' in data and isinstance(data['content'], list) and len(data['content']) > 0:
@@ -64,12 +65,17 @@ Provide the compressed summary below:
 
 """
 =======
+=======
+        print(f"Summarizing architecture for project: {project_name}, repository: {repository}")
+       
         # Get recent changes to summarize
         recent_changes = firebase_client.get_recent_changes(repository, limit=10)
         
         if not recent_changes:
             print("No recent changes found, skipping summarization")
             return
+        
+        print(f"Found {len(recent_changes)} recent changes to summarize")
         
         # Prepare the changes data for AI analysis
         changes_text = ""
@@ -81,7 +87,7 @@ Provide the compressed summary below:
         
         prompt = f"""
         You are SummarizerAI.
-        Condense the following architecture history to ~40 % of its length while preserving all major technical decisions.
+        Condense the following architecture history to ~40 % of its length while preserving all major technical decisions.
 
         REQUIREMENTS
 
@@ -116,7 +122,8 @@ Provide the compressed summary below:
             changes_count=0  # Reset counter after summarization
         )
         
-        print(f"Architecture summary updated for {repository}")
+        print(f"Architecture summary updated for {repository} in project {project_name}")
+        print(f"Summary: {architecture_summary[:200]}...")
         
     except Exception as e:
         print(f"Error summarizing architecture: {e}")

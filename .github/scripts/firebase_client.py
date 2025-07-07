@@ -7,7 +7,7 @@ import base64
 import logging
 
 class FirebaseClient:
-    def __init__(self, service_account_path=None):
+    def __init__(self, service_account_path=None, project_name="test"):
         try:
             if not firebase_admin._apps:
                 # Use provided path or default
@@ -24,6 +24,7 @@ class FirebaseClient:
                 firebase_admin.initialize_app(cred)
             
             self.db = firestore.client()
+            self.project_name = project_name
         except Exception as e:
             logging.error(f"Failed to initialize Firebase: {str(e)}")
             raise
@@ -34,59 +35,88 @@ class FirebaseClient:
             return None
             
         try:
-            doc_ref = self.db.collection('architecture_summaries').document(repository.replace('/', '_'))
+            # Use project_name as the main collection path
+            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
             doc = doc_ref.get()
             if doc.exists:
-                return doc.to_dict()
-            return None
+                data = doc.to_dict()
+                print(f"Found existing architecture summary for {repository} in project {self.project_name}")
+                return data
+            else:
+                print(f"No architecture summary found for {repository} in project {self.project_name}")
+                return None
         except Exception as e:
             logging.error(f"Error fetching architecture summary: {str(e)}")
             return None
     
     def update_architecture_summary(self, repository, summary, changes_count=0):
         """Update the architecture summary for a repository"""
-        doc_ref = self.db.collection('architecture_summaries').document(repository.replace('/', '_'))
-        doc_ref.set({
-            'repository': repository,
-            'summary': summary,
-            'last_updated': datetime.utcnow(),
-            'changes_count': changes_count
-        }, merge=True)
+        try:
+            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
+            data = {
+                'repository': repository,
+                'summary': summary,
+                'last_updated': datetime.utcnow(),
+                'changes_count': changes_count
+            }
+            doc_ref.set(data, merge=True)
+            print(f"Successfully updated architecture summary for {repository} in project {self.project_name}")
+        except Exception as e:
+            logging.error(f"Error updating architecture summary: {str(e)}")
+            raise
     
     def add_architecture_change(self, repository, pr_number, diff, metadata=None):
         """Add a new architecture change record"""
-        doc_ref = self.db.collection('architecture_changes').document()
-        change_data = {
-            'repository': repository,
-            'pr_number': pr_number,
-            'diff': diff,
-            'timestamp': datetime.utcnow(),
-            'metadata': metadata or {}
-        }
-        doc_ref.set(change_data)
-        return doc_ref.id
+        try:
+            doc_ref = self.db.collection(self.project_name).document('architecture_changes').collection('changes').document()
+            change_data = {
+                'repository': repository,
+                'pr_number': pr_number,
+                'diff': diff,
+                'timestamp': datetime.utcnow(),
+                'metadata': metadata or {}
+            }
+            doc_ref.set(change_data)
+            print(f"Successfully added architecture change for {repository} in project {self.project_name}")
+            return doc_ref.id
+        except Exception as e:
+            logging.error(f"Error adding architecture change: {str(e)}")
+            raise
     
     def get_recent_changes(self, repository, limit=10):
         """Get recent architecture changes for context"""
-        query = (self.db.collection('architecture_changes')
-                .where('repository', '==', repository)
-                .order_by('timestamp', direction=firestore.Query.DESCENDING)
-                .limit(limit))
-        
-        changes = []
-        for doc in query.stream():
-            data = doc.to_dict()
-            changes.append(data)
-        return changes
+        try:
+            query = (self.db.collection(self.project_name).document('architecture_changes').collection('changes')
+                    .where(filter=firestore.FieldFilter('repository', '==', repository))
+                    .order_by('timestamp', direction=firestore.Query.DESCENDING)
+                    .limit(limit))
+            
+            changes = []
+            for doc in query.stream():
+                data = doc.to_dict()
+                changes.append(data)
+            
+            print(f"Found {len(changes)} recent changes for {repository} in project {self.project_name}")
+            return changes
+        except Exception as e:
+            logging.error(f"Error getting recent changes: {str(e)}")
+            return []
     
     def should_summarize(self, repository, changes_threshold=5):
         """Determine if we should regenerate the architecture summary"""
-        doc_ref = self.db.collection('architecture_summaries').document(repository.replace('/', '_'))
-        doc = doc_ref.get()
-        
-        if not doc.exists:
-            return True
-        
-        data = doc.to_dict()
-        changes_count = data.get('changes_count', 0)
-        return changes_count >= changes_threshold
+        try:
+            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
+            doc = doc_ref.get()
+            
+            if not doc.exists:
+                print(f"No existing summary found for {repository}, should summarize")
+                return True
+            
+            data = doc.to_dict()
+            changes_count = data.get('changes_count', 0)
+            should_summarize = changes_count >= changes_threshold
+            print(f"Repository {repository} has {changes_count} changes, threshold is {changes_threshold}, should summarize: {should_summarize}")
+            return should_summarize
+        except Exception as e:
+            logging.error(f"Error checking should_summarize: {str(e)}")
+            return False
