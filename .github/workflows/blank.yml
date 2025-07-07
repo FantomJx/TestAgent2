@@ -175,3 +175,4 @@ jobs:
             /tmp/summary_comment.json
             architecture_summary.txt*
           retention-days: 7
+
