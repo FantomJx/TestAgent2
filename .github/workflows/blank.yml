@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-      contents: write
+      contents: read
 
     steps:
       - name: Checkout full repo history
@@ -20,6 +20,11 @@ jobs:
         with:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
+
+      - name: Set up Python and install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install firebase-admin anthropic openai
 
       - name: Generate diff between base and head (excluding workflow file)
         id: diff
@@ -35,12 +40,20 @@ jobs:
           LINE_COUNT=$(echo "$DIFF" | grep -c '^[+-]' || echo "0")
           echo "line_count=$LINE_COUNT" >> "$GITHUB_OUTPUT"
 
-      - name: Track architecture changes
+      - name: Track architecture changes in Firebase
         id: track-arch
         if: contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES') || contains(toJSON(github.event.pull_request.labels.*.name), 'important change') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')
         env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           python3 .github/scripts/track_architecture.py >> "$GITHUB_OUTPUT"
 
@@ -48,10 +61,15 @@ jobs:
         if: (contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES') || contains(toJSON(github.event.pull_request.labels.*.name), 'important change') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')) && contains(steps.track-arch.outputs.should_summarize, 'true')
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          REPOSITORY: ${{ github.repository }}
           SHOULD_SUMMARIZE: 'true'
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           python3 .github/scripts/summarize_architecture.py
-
+          
       - name: Commit architecture summary changes
         if: (contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES') || contains(toJSON(github.event.pull_request.labels.*.name), 'important change') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')) && (contains(steps.track-arch.outputs.arch_updated, 'true') || contains(steps.track-arch.outputs.should_summarize, 'true'))
         run: |
@@ -115,6 +133,17 @@ jobs:
           else
             echo "No changes to commit"
           fi
+=======
+      - name: Fetch architecture context from Firebase
+        id: fetch-context
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python3 .github/scripts/fetch_firebase_context.py >> "$GITHUB_OUTPUT"
 
       - name: Choose model based on line count and labels
         id: choose-model
@@ -167,6 +196,7 @@ jobs:
           MODEL: ${{ steps.choose-model.outputs.model }}
           HAS_IMPORTANT_LABEL: ${{ steps.choose-model.outputs.has_important_label }}
           LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
+          ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
         run: |
           python3 .github/scripts/ai_review.py >> "$GITHUB_OUTPUT"
 
@@ -190,5 +220,4 @@ jobs:
             /tmp/ai_response.txt
             /tmp/line_comment.json
             /tmp/summary_comment.json
-            architecture_summary.txt*
           retention-days: 7
