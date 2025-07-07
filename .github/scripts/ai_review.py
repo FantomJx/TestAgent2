@@ -82,40 +82,18 @@ def create_openai_payload(model: str, prompt: str) -> Dict[str, Any]:
 
 def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
     """Call Claude API and return the response content."""
-    # Log payload details before making the API call
-    payload_str = json.dumps(payload, indent=2)
-    payload_size = len(payload_str)
-    prompt_content = payload.get('messages', [{}])[0].get('content', '')
-    prompt_length = len(prompt_content)
+    # Log minimal payload details
+    payload_size = len(json.dumps(payload))
+    prompt_length = len(payload.get('messages', [{}])[0].get('content', ''))
 
-    print(f"\n{'='*80}", file=sys.stderr)
-    print(f"CLAUDE API CALL (AI Review)", file=sys.stderr)
-    print(f"{'='*80}", file=sys.stderr)
-    print(f"Model: {payload.get('model', 'unknown')}", file=sys.stderr)
-    print(f"Payload size: {payload_size:,} bytes", file=sys.stderr)
-    print(f"Prompt length: {prompt_length:,} characters", file=sys.stderr)
-    print(
-        f"Max tokens: {payload.get('max_tokens', 'unknown')}", file=sys.stderr)
-
+    print(f"Claude API call - Model: {payload.get('model', 'unknown')}", file=sys.stderr)
+    
     # Log warning if payload is very large
     if payload_size > 100000:  # 100k bytes
-        print(
-            f"WARNING: Large payload detected ({payload_size:,} bytes)", file=sys.stderr)
+        print(f"WARNING: Large payload detected ({payload_size:,} bytes)", file=sys.stderr)
 
     if prompt_length > 5000:  # 5k characters
-        print(
-            f"WARNING: Very long prompt detected ({prompt_length:,} characters)", file=sys.stderr)
-
-    print(f"\nFULL PAYLOAD BEING SENT:", file=sys.stderr)
-    print(f"{'-'*40}", file=sys.stderr)
-    print(payload_str, file=sys.stderr)
-    print(f"{'-'*40}", file=sys.stderr)
-
-    print(f"\nFULL PROMPT CONTENT:", file=sys.stderr)
-    print(f"{'-'*40}", file=sys.stderr)
-    print(prompt_content, file=sys.stderr)
-    print(f"{'-'*40}", file=sys.stderr)
-    print(f"{'='*80}\n", file=sys.stderr)
+        print(f"WARNING: Very long prompt detected ({prompt_length:,} characters)", file=sys.stderr)
 
     with open('/tmp/claude_payload.json', 'w') as f:
         json.dump(payload, f)
@@ -161,6 +139,9 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
 
 def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
     """Call OpenAI API and return the response content."""
+    # Log minimal payload details
+    print(f"OpenAI API call - Model: {payload.get('model', 'unknown')}", file=sys.stderr)
+    
     with open('/tmp/openai_payload.json', 'w') as f:
         json.dump(payload, f)
 
@@ -191,26 +172,10 @@ def create_review_prompt(diff: str) -> str:
     """Create the review prompt for the AI model."""
     architecture_context = read_architecture_context()
 
-    # Log diff details for debugging
+    # Log minimal diff details
     diff_lines = diff.count('\n')
     diff_length = len(diff)
-
-    print(f"\n{'='*60}", file=sys.stderr)
-    print(f"AI REVIEW - DIFF DETAILS", file=sys.stderr)
-    print(f"{'='*60}", file=sys.stderr)
-    print(f"Diff Lines: {diff_lines:,}", file=sys.stderr)
-    print(f"Diff Characters: {diff_length:,}", file=sys.stderr)
-
-    print(f"\nFULL DIFF CONTENT:", file=sys.stderr)
-    print(f"{'-'*30}", file=sys.stderr)
-    print(diff, file=sys.stderr)
-    print(f"{'-'*30}", file=sys.stderr)
-
-    print(f"\nARCHITECTURE CONTEXT:", file=sys.stderr)
-    print(f"{'-'*30}", file=sys.stderr)
-    print(architecture_context, file=sys.stderr)
-    print(f"{'-'*30}", file=sys.stderr)
-    print(f"{'='*60}\n", file=sys.stderr)
+    print(f"Diff size: {diff_lines:,} lines, {diff_length:,} characters", file=sys.stderr)
 
     # Truncate diff if it's too large to avoid API limits
     max_diff_length = 80000  # Conservative limit for diff content

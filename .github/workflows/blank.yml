@@ -157,7 +157,7 @@ jobs:
           LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
           ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
         run: |
-          python3 .github/scripts/ai_review.py >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/ai_review.py 2>/tmp/ai_review_debug.log >> "$GITHUB_OUTPUT"
 
       - name: Post line-by-line comments on PR
         env:
