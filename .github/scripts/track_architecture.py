@@ -11,7 +11,7 @@ def main():
         repository = os.environ['REPOSITORY']
         pr_number = int(os.environ['PR_NUMBER'])
         diff_b64 = os.environ['DIFF_B64']
-        project_name = os.environ.get('PROJECT-NAME', 'default')
+        project_name = "test"  # Hardcoded project name
         
         # Log which project we're using
         print(f"Using project: {project_name}")

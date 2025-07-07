@@ -8,7 +8,7 @@ def main():
     try:
         firebase_client = FirebaseClient()
         repository = os.environ['REPOSITORY']
-        project_name = os.environ.get('PROJECT-NAME', 'default')
+        project_name = "test"  # Hardcoded project name
         
         print(f"Summarizing architecture for project: {project_name}, repository: {repository}")
         

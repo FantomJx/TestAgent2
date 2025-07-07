@@ -24,8 +24,8 @@ class FirebaseClient:
                 firebase_admin.initialize_app(cred)
             
             self.db = firestore.client()
-            # Get project name from environment variable
-            self.project_name = os.environ.get('PROJECT-NAME', 'default')
+            # Use hardcoded project name
+            self.project_name = "test"
         except Exception as e:
             logging.error(f"Failed to initialize Firebase: {str(e)}")
             raise
