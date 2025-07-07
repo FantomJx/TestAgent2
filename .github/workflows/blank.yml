@@ -66,7 +66,7 @@ jobs:
           fi
           
           # Pull latest changes to avoid conflicts
-          git fetch origin ${{ github.head_ref }}
+          # git fetch origin ${{ github.head_ref }}
           
           # Show git status after pull/rebase
           echo "=== Git status after pull/rebase ==="
