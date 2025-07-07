@@ -13,16 +13,7 @@ class FirebaseClient:
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
                 "pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json"
             )
-            
-            # Load and process the service account file manually to handle potential compatibility issues
-            with open(service_account_path, 'r') as file:
-                service_account_info = json.load(file)
-                
-                # Remove universe_domain field if it exists to prevent compatibility issues
-                if 'universe_domain' in service_account_info:
-                    service_account_info.pop('universe_domain')
-                
-            cred = credentials.Certificate(service_account_info)
+            cred = credentials.Certificate(service_account_path)
             firebase_admin.initialize_app(cred)
         
         self.db = firestore.client()
