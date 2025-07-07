@@ -4,11 +4,17 @@ from firebase_client import FirebaseClient
 
 def main():
     try:
+        # Initialize Firebase client which will handle PROJECT-NAME
         firebase_client = FirebaseClient()
         
+        # Get required environment variables
         repository = os.environ['REPOSITORY']
         pr_number = int(os.environ['PR_NUMBER'])
         diff_b64 = os.environ['DIFF_B64']
+        project_name = os.environ.get('PROJECT-NAME', 'default')
+        
+        # Log which project we're using
+        print(f"Using project: {project_name}")
         
         # Decode the diff
         diff = base64.b64decode(diff_b64).decode('utf-8')
@@ -18,7 +24,8 @@ def main():
             'head_sha': os.environ.get('HEAD_SHA'),
             'base_sha': os.environ.get('BASE_SHA'),
             'pr_title': os.environ.get('PR_TITLE'),
-            'pr_author': os.environ.get('PR_AUTHOR')
+            'pr_author': os.environ.get('PR_AUTHOR'),
+            'project_name': project_name
         }
         
         # Add the architecture change to Firebase

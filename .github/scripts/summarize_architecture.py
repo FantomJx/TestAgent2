@@ -8,6 +8,9 @@ def main():
     try:
         firebase_client = FirebaseClient()
         repository = os.environ['REPOSITORY']
+        project_name = os.environ.get('PROJECT-NAME', 'default')
+        
+        print(f"Summarizing architecture for project: {project_name}, repository: {repository}")
         
         # Get recent changes to summarize
         recent_changes = firebase_client.get_recent_changes(repository, limit=10)
@@ -26,7 +29,7 @@ def main():
         
         prompt = f"""
         You are SummarizerAI.
-        Condense the following architecture history to ~40 % of its length while preserving all major technical decisions.
+        Condense the following architecture history to ~40 % of its length while preserving all major technical decisions.
 
         REQUIREMENTS
 
@@ -61,7 +64,7 @@ def main():
             changes_count=0  # Reset counter after summarization
         )
         
-        print(f"Architecture summary updated for {repository}")
+        print(f"Architecture summary updated for {repository} in project {project_name}")
         
     except Exception as e:
         print(f"Error summarizing architecture: {e}")

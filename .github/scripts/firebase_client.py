@@ -24,6 +24,8 @@ class FirebaseClient:
                 firebase_admin.initialize_app(cred)
             
             self.db = firestore.client()
+            # Get project name from environment variable
+            self.project_name = os.environ.get('PROJECT-NAME', 'default')
         except Exception as e:
             logging.error(f"Failed to initialize Firebase: {str(e)}")
             raise
@@ -34,7 +36,8 @@ class FirebaseClient:
             return None
             
         try:
-            doc_ref = self.db.collection('architecture_summaries').document(repository.replace('/', '_'))
+            # Use project_name as the main collection path
+            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
             doc = doc_ref.get()
             if doc.exists:
                 return doc.to_dict()
@@ -45,7 +48,7 @@ class FirebaseClient:
     
     def update_architecture_summary(self, repository, summary, changes_count=0):
         """Update the architecture summary for a repository"""
-        doc_ref = self.db.collection('architecture_summaries').document(repository.replace('/', '_'))
+        doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
         doc_ref.set({
             'repository': repository,
             'summary': summary,
@@ -55,7 +58,7 @@ class FirebaseClient:
     
     def add_architecture_change(self, repository, pr_number, diff, metadata=None):
         """Add a new architecture change record"""
-        doc_ref = self.db.collection('architecture_changes').document()
+        doc_ref = self.db.collection(self.project_name).document('architecture_changes').collection('changes').document()
         change_data = {
             'repository': repository,
             'pr_number': pr_number,
@@ -68,7 +71,7 @@ class FirebaseClient:
     
     def get_recent_changes(self, repository, limit=10):
         """Get recent architecture changes for context"""
-        query = (self.db.collection('architecture_changes')
+        query = (self.db.collection(self.project_name).document('architecture_changes').collection('changes')
                 .where('repository', '==', repository)
                 .order_by('timestamp', direction=firestore.Query.DESCENDING)
                 .limit(limit))
@@ -81,7 +84,7 @@ class FirebaseClient:
     
     def should_summarize(self, repository, changes_threshold=5):
         """Determine if we should regenerate the architecture summary"""
-        doc_ref = self.db.collection('architecture_summaries').document(repository.replace('/', '_'))
+        doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
         doc = doc_ref.get()
         
         if not doc.exists:
