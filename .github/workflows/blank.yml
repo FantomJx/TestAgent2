@@ -156,7 +156,7 @@ jobs:
       - name: Post line-by-line comments on PR
         env:
           REVIEW_TEXT: ${{ steps.ai-review.outputs.review_b64 }}
-          MODEL_COMMENT: ${{ steps.ai-review.outputs.model_comment || steps.choose-model.outputs.model_comment }}
+          MODEL_COMMENT: ${{ steps.choose-model.outputs.model_comment }}
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
