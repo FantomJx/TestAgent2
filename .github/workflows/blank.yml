@@ -37,7 +37,11 @@ jobs:
 
       - name: Track architecture changes
         id: track-arch
+<<<<<<< Updated upstream
         if: contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES')
+=======
+        if: contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')
+>>>>>>> Stashed changes
         env:
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -45,7 +49,11 @@ jobs:
           python3 .github/scripts/track_architecture.py >> "$GITHUB_OUTPUT"
 
       - name: Summarize architecture if needed
+<<<<<<< Updated upstream
         if: (contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES')) && contains(steps.track-arch.outputs.should_summarize, 'true')
+=======
+        if: (contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')) && contains(steps.track-arch.outputs.should_summarize, 'true')
+>>>>>>> Stashed changes
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SHOULD_SUMMARIZE: 'true'
@@ -53,7 +61,11 @@ jobs:
           python3 .github/scripts/summarize_architecture.py
 
       - name: Commit architecture summary changes
+<<<<<<< Updated upstream
         if: (contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES')) && (contains(steps.track-arch.outputs.arch_updated, 'true') || contains(steps.track-arch.outputs.should_summarize, 'true'))
+=======
+        if: (contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')) && (contains(steps.track-arch.outputs.arch_updated, 'true') || contains(steps.track-arch.outputs.should_summarize, 'true'))
+>>>>>>> Stashed changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
