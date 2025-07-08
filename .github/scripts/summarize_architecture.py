@@ -188,9 +188,11 @@ def main():
         if not old_summary_text:  # New project, analyze full codebase
             active_prompt = prompt1
             print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
+            print(f"FULL PROMPT1 CONTENT:\n{prompt1}\n{'='*80}", file=sys.stderr)
         else:  # Existing project, update summary with recent changes
             active_prompt = prompt
             print("Using architecture summary update (prompt) with existing summary and changes", file=sys.stderr)
+            print(f"FULL PROMPT CONTENT:\n{prompt}\n{'='*80}", file=sys.stderr)
         
 
         response = client.messages.create(
