@@ -103,7 +103,7 @@ class FirebaseClient:
             logging.error(f"Error getting recent changes: {str(e)}")
             return []
     
-    def should_summarize(self, repository, changes_threshold=5):
+    def should_summarize(self, repository, changes_threshold=0):
         """Determine if we should regenerate the architecture summary"""
         try:
             doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
