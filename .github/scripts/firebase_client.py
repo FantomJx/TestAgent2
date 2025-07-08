@@ -38,7 +38,7 @@ class FirebaseClient:
         try:
             # Use project_name as the main collection path
             #jiadsbijnadsnjiasdinjaijsdnijas
-            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection(repository.replace('/', '_'))
+            doc_ref = self.db.collection(self.project_name).document('architecture_summaries')
             doc = doc_ref.get()
             if doc.exists:
                 data = doc.to_dict()
@@ -55,7 +55,7 @@ class FirebaseClient:
         """Update the architecture summary for a repository"""
         try:
             # ahjbasdjasdnasjndjasndnjkasnkdjas
-            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection(repository.replace('/', '_'))
+            doc_ref = self.db.collection(self.project_name).document('architecture_summaries')
             data = {
                 'repository': repository,
                 'summary': summary,
