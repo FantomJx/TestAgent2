@@ -81,8 +81,6 @@ def main():
         
         # Ensure we treat empty or whitespace-only summaries as no summary
         old_summary_text = old_summary_text.strip() if old_summary_text else ''
-        print(f"Existing architecture summary length: {len(old_summary_text)} characters", file=sys.stderr)
-        print(f"Existing summary content: {old_summary_text[:200]}...", file=sys.stderr)  # Show first 200 chars for context
         
         if old_summary_text:
             print(f"Found existing architecture summary ({len(old_summary_text)} characters)", file=sys.stderr)
@@ -192,11 +190,9 @@ def main():
         if not old_summary_text:  # New project or empty summary, analyze full codebase
             active_prompt = prompt1
             print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
-            print(f"FULL PROMPT1 CONTENT:\n{prompt1}\n{'='*80}", file=sys.stderr)
         else:  # Existing project with summary, update summary with PR diff
             active_prompt = prompt
             print("Using architecture summary update (prompt) with existing summary and PR diff", file=sys.stderr)
-            print(f"FULL PROMPT CONTENT:\n{prompt}\n{'='*80}", file=sys.stderr)
         
 
         response = client.messages.create(
