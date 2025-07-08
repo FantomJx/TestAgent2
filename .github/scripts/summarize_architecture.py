@@ -72,13 +72,13 @@ def main():
         print(f"Summarizing architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
         
         # Get recent changes to summarize
-        recent_changes = firebase_client.get_recent_changes(repository, limit=10)
+        # recent_changes = firebase_client.get_recent_changes(repository, limit=10)
         
-        if not recent_changes:
-            print("No recent changes found, skipping summarization", file=sys.stderr)
-            return
+        # if not recent_changes:
+        #     print("No recent changes found, skipping summarization", file=sys.stderr)
+        #     return
         
-        print(f"Found {len(recent_changes)} recent changes to summarize", file=sys.stderr)
+        # print(f"Found {len(recent_changes)} recent changes to summarize", file=sys.stderr)
         
         # Get existing architecture summary
         existing_summary = firebase_client.get_architecture_summary(repository)
@@ -100,8 +100,8 @@ def main():
 
         # Prepare the changes data for AI analysis
         changes_text = ""
-        for change in recent_changes:
-            changes_text += f"PR #{change.get('pr_number', 'Unknown')}: {change.get('diff', '')[:1000]}\n\n"
+        # for change in recent_changes:
+        #     changes_text += f"PR #{change.get('pr_number', 'Unknown')}: {change.get('diff', '')[:1000]}\n\n"
         
         # Use Claude to generate architecture summary
         client = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
