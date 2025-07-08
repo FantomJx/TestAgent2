@@ -103,9 +103,6 @@ jobs:
         run: |
           python3 .github/scripts/summarize_architecture.py
           
-      - name: Commit architecture summary changes
-        if: (contains(github.event.pull_request.title, '#IMPORTANT-CHANGE') || contains(github.event.pull_request.title, '#IMPORTANT-CHANGES') || contains(toJSON(github.event.pull_request.labels.*.name), 'important change') || contains(toJSON(github.event.pull_request.labels.*.name), 'important changes')) && (contains(steps.track-arch.outputs.arch_updated, 'true') || contains(steps.track-arch.outputs.should_summarize, 'true'))
-        run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
