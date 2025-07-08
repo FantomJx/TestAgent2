@@ -199,7 +199,7 @@ def main():
 
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022",
-            max_tokens=3000,  # Increased for more comprehensive summaries
+            max_tokens=2000,  # Increased for more comprehensive summaries
             messages=[{"role": "user", "content": active_prompt}]
         )
         
