@@ -87,7 +87,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          python3 .github/scripts/track_architecture.py >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/track_architecture.py
 
       - name: Summarize architecture if needed
         if: steps.check-important.outputs.is_important_change == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
@@ -177,7 +177,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          python3 .github/scripts/fetch_firebase_context.py >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/fetch_firebase_context.py
 
       - name: Choose model based on line count and labels
         id: choose-model
@@ -221,7 +221,7 @@ jobs:
           LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
           ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
         run: |
-          python3 .github/scripts/ai_review.py 2>/tmp/ai_review_debug.log >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/ai_review.py 2>/tmp/ai_review_debug.log
 
       - name: Post line-by-line comments on PR
         env:

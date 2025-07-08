@@ -314,7 +314,14 @@ if __name__ == "__main__":
         print(
             "No significant files to analyze after filtering .github files", file=sys.stderr)
         review_b64 = base64.b64encode("[]".encode('utf-8')).decode('utf-8')
-        print(f"review_b64={review_b64}")
+        
+        # Write output to GitHub Actions output file
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write(f"review_b64={review_b64}\n")
+        else:
+            # Fallback for local testing
+            print(f"review_b64={review_b64}", file=sys.stderr)
         sys.exit(0)
 
     # Determine which model to use based on labels and diff size
@@ -337,6 +344,15 @@ if __name__ == "__main__":
 
     # Output base64 encoded review and model info
     review_b64 = base64.b64encode(review.encode('utf-8')).decode('utf-8')
-    print(f"review_b64={review_b64}")
-    print(f"model_used={selected_model}")
-    print(f"model_comment={model_comment}")
+    
+    # Write output to GitHub Actions output file
+    if 'GITHUB_OUTPUT' in os.environ:
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+            fh.write(f"review_b64={review_b64}\n")
+            fh.write(f"model_used={selected_model}\n")
+            fh.write(f"model_comment={model_comment}\n")
+    else:
+        # Fallback for local testing
+        print(f"review_b64={review_b64}", file=sys.stderr)
+        print(f"model_used={selected_model}", file=sys.stderr)
+        print(f"model_comment={model_comment}", file=sys.stderr)

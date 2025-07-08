@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
@@ -40,10 +41,10 @@ class FirebaseClient:
             doc = doc_ref.get()
             if doc.exists:
                 data = doc.to_dict()
-                print(f"Found existing architecture summary for {repository} in project {self.project_name}")
+                print(f"Found existing architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
                 return data
             else:
-                print(f"No architecture summary found for {repository} in project {self.project_name}")
+                print(f"No architecture summary found for {repository} in project {self.project_name}", file=sys.stderr)
                 return None
         except Exception as e:
             logging.error(f"Error fetching architecture summary: {str(e)}")
@@ -60,7 +61,7 @@ class FirebaseClient:
                 'changes_count': changes_count
             }
             doc_ref.set(data, merge=True)
-            print(f"Successfully updated architecture summary for {repository} in project {self.project_name}")
+            print(f"Successfully updated architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
         except Exception as e:
             logging.error(f"Error updating architecture summary: {str(e)}")
             raise
@@ -77,7 +78,7 @@ class FirebaseClient:
                 'metadata': metadata or {}
             }
             doc_ref.set(change_data)
-            print(f"Successfully added architecture change for {repository} in project {self.project_name}")
+            print(f"Successfully added architecture change for {repository} in project {self.project_name}", file=sys.stderr)
             return doc_ref.id
         except Exception as e:
             logging.error(f"Error adding architecture change: {str(e)}")
@@ -96,7 +97,7 @@ class FirebaseClient:
                 data = doc.to_dict()
                 changes.append(data)
             
-            print(f"Found {len(changes)} recent changes for {repository} in project {self.project_name}")
+            print(f"Found {len(changes)} recent changes for {repository} in project {self.project_name}", file=sys.stderr)
             return changes
         except Exception as e:
             logging.error(f"Error getting recent changes: {str(e)}")
@@ -109,13 +110,13 @@ class FirebaseClient:
             doc = doc_ref.get()
             
             if not doc.exists:
-                print(f"No existing summary found for {repository}, should summarize")
+                print(f"No existing summary found for {repository}, should summarize", file=sys.stderr)
                 return True
             
             data = doc.to_dict()
             changes_count = data.get('changes_count', 0)
             should_summarize = changes_count >= changes_threshold
-            print(f"Repository {repository} has {changes_count} changes, threshold is {changes_threshold}, should summarize: {should_summarize}")
+            print(f"Repository {repository} has {changes_count} changes, threshold is {changes_threshold}, should summarize: {should_summarize}", file=sys.stderr)
             return should_summarize
         except Exception as e:
             logging.error(f"Error checking should_summarize: {str(e)}")
