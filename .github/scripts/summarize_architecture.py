@@ -88,6 +88,8 @@ def main():
         
         # Ensure we treat empty or whitespace-only summaries as no summary
         old_summary_text = old_summary_text.strip() if old_summary_text else ''
+        print(f"Existing architecture summary length: {len(old_summary_text)} characters", file=sys.stderr)
+        print(f"Existing summary content: {old_summary_text[:200]}...", file=sys.stderr)  # Show first 200 chars for context
         
         if old_summary_text:
             print(f"Found existing architecture summary ({len(old_summary_text)} characters)", file=sys.stderr)
