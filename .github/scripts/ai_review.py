@@ -178,7 +178,7 @@ def create_review_prompt(diff: str) -> str:
     print(f"Diff size: {diff_lines:,} lines, {diff_length:,} characters", file=sys.stderr)
 
     # Truncate diff if it's too large to avoid API limits
-    max_diff_length = 80000  # Conservative limit for diff content
+    max_diff_length = 5000  # Conservative limit for diff content
     if diff_length > max_diff_length:
         print(
             f"WARNING: Diff is very large ({diff_length:,} chars), truncating to {max_diff_length:,} chars", file=sys.stderr)
