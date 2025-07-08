@@ -155,12 +155,28 @@ jobs:
             echo "Using o3-mini for small diff ($LINES lines <= $THRESHOLD threshold)"
           fi
 
+      - name: Generate codebase snapshot
+        id: codebase
+        run: |
+          # Create a snapshot of the current codebase (excluding common non-code files)
+          CODEBASE=$(find . -type f \
+            ! -path './.git/*' \
+            ! -path './node_modules/*' \
+            ! -path './.github/*' \
+            ! -path './.*' \
+            ! -name '*.log' \
+            ! -name '*.tmp' \
+            ! -name '*.cache' \
+            -exec head -c 1M {} \; 2>/dev/null | head -c 500K)
+          echo "codebase_b64=$(printf '%s' "$CODEBASE" | base64 -w0)" >> "$GITHUB_OUTPUT"
+
       - name: Call AI for code review
         id: ai-review
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
+          CODEBASE_B64: ${{ steps.codebase.outputs.codebase_b64 }}
           MODEL: ${{ steps.choose-model.outputs.model }}
           HAS_IMPORTANT_LABEL: ${{ steps.choose-model.outputs.has_important_label }}
           LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
