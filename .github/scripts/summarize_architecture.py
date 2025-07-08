@@ -6,7 +6,6 @@ import glob
 from firebase_client import FirebaseClient
 import anthropic
 
-#============================================================
 
 def get_codebase_content(repository_path="."):
     """Collect all relevant source code files from the repository"""
@@ -62,7 +61,6 @@ def get_codebase_content(repository_path="."):
         
     return code_content
 
-#============================================================
 def main():
     try:
         project_name = "test"  # Hardcoded project name
@@ -89,13 +87,11 @@ def main():
         else:
             print("No existing architecture summary found", file=sys.stderr)
         
-#============================================================
 
         # Collect the entire codebase for comprehensive architecture analysis
         codebase_content = get_codebase_content(".")
         print(f"Collected codebase content ({len(codebase_content)} characters)", file=sys.stderr)
         
-#============================================================
 
 
         # Prepare the changes data for AI analysis
@@ -106,7 +102,6 @@ def main():
         # Use Claude to generate architecture summary
         client = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
 
-#============================================================
 
         # NEW PROMPT: Focus on overall project architecture understanding
         prompt1 = f"""
@@ -141,7 +136,6 @@ def main():
         """
         
 
-#============================================================
 
 
         # UPDATED PROMPT: Architecture summary update based on existing summary + changes
@@ -183,7 +177,6 @@ def main():
         Provide the updated architecture summary below:
         """
 
-#============================================================
 
 
         # Use comprehensive codebase analysis (prompt1) for new projects with no existing summary
@@ -195,7 +188,6 @@ def main():
             active_prompt = prompt
             print("Using architecture summary update (prompt) with existing summary and changes", file=sys.stderr)
         
-#============================================================
 
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022",
