@@ -109,7 +109,13 @@ def main():
         context_json = json.dumps(context_data, default=str)
         context_b64 = base64.b64encode(context_json.encode('utf-8')).decode('utf-8')
         
-        print(f"context_b64={context_b64}")
+        # Write output to GitHub Actions output file
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write(f"context_b64={context_b64}\n")
+        else:
+            # Fallback for local testing
+            print(f"context_b64={context_b64}")
         
     except Exception as e:
         error_msg = str(e)
@@ -118,7 +124,14 @@ def main():
         # Provide empty context on error but don't exit with error code
         # This allows the workflow to continue even if Firebase is unavailable
         empty_context_b64 = create_empty_context()
-        print(f"context_b64={empty_context_b64}")
+        
+        # Write output to GitHub Actions output file
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write(f"context_b64={empty_context_b64}\n")
+        else:
+            # Fallback for local testing
+            print(f"context_b64={empty_context_b64}")
         
         # Only exit with error code for critical failures
         if 'REPOSITORY' not in os.environ:

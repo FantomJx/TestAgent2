@@ -57,12 +57,26 @@ def main():
                 changes_count=1
             )
         
-        print(f"should_summarize={str(should_summarize).lower()}")
-        print(f"change_id={change_id}")
+        # Write outputs to GitHub Actions output file
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write(f"should_summarize={str(should_summarize).lower()}\n")
+                fh.write(f"change_id={change_id}\n")
+        else:
+            # Fallback for local testing
+            print(f"should_summarize={str(should_summarize).lower()}")
+            print(f"change_id={change_id}")
         
     except Exception as e:
         print(f"Error tracking architecture: {e}")
-        print("should_summarize=false")
+        
+        # Write error output to GitHub Actions output file
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write("should_summarize=false\n")
+        else:
+            # Fallback for local testing
+            print("should_summarize=false")
         exit(1)
 
 if __name__ == "__main__":
