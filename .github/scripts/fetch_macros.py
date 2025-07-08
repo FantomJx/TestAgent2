@@ -2,7 +2,7 @@ import os
 import sys
 import json
 import firebase_admin
-from firebase_admin import credentials, db
+from firebase_admin import credentials, firestore
 
 # Configuration - Firebase service account file
 FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json"
@@ -34,17 +34,21 @@ def initialize_firebase():
         return False
 
 def fetch_macros():
-    """Fetch macro configuration values from Firebase."""
+    """Fetch macro configuration values from Firestore."""
     try:
-        # Get reference to macros node
-        ref = db.reference('macros')
-        macros_data = ref.get()
+        # Get Firestore client
+        db = firestore.client()
         
-        if not macros_data:
-            print("⚠️  No macros data found in Firebase")
+        # Get reference to macros document
+        doc_ref = db.collection('macros').document('macros')
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            print("⚠️  No macros document found in Firestore")
             return None
         
-        print("✅ Successfully fetched macros from Firebase:")
+        macros_data = doc.to_dict()
+        print("✅ Successfully fetched macros from Firestore:")
         
         # Define expected macro keys with defaults
         expected_macros = {
