@@ -73,14 +73,7 @@ def main():
         
         print(f"Summarizing architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
         
-        # Get recent changes to summarize
-        # recent_changes = firebase_client.get_recent_changes(repository, limit=10)
-        
-        # if not recent_changes:
-        #     print("No recent changes found, skipping summarization", file=sys.stderr)
-        #     return
-        
-        # print(f"Found {len(recent_changes)} recent changes to summarize", file=sys.stderr)
+        # Note: We now use the PR diff directly instead of collecting recent changes from Firebase
         
         # Get existing architecture summary
         existing_summary = firebase_client.get_architecture_summary(repository)
@@ -101,12 +94,18 @@ def main():
         codebase_content = get_codebase_content(".")
         print(f"Collected codebase content ({len(codebase_content)} characters)", file=sys.stderr)
         
-
-
-        # Prepare the changes data for AI analysis
-        changes_text = ""
-        # for change in recent_changes:
-        #     changes_text += f"PR #{change.get('pr_number', 'Unknown')}: {change.get('diff', '')[:1000]}\n\n"
+        # Get the diff from the PR (passed as base64 encoded environment variable)
+        diff_b64 = os.environ.get('DIFF_B64', '')
+        diff_text = ""
+        if diff_b64:
+            try:
+                diff_text = base64.b64decode(diff_b64).decode('utf-8')
+                print(f"Decoded diff from PR ({len(diff_text)} characters)", file=sys.stderr)
+            except Exception as e:
+                print(f"Error decoding diff: {e}", file=sys.stderr)
+                diff_text = ""
+        else:
+            print("No diff data found in environment", file=sys.stderr)
         
         # Use Claude to generate architecture summary
         client = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
@@ -147,10 +146,10 @@ def main():
 
 
 
-        # UPDATED PROMPT: Architecture summary update based on existing summary + changes
+        # UPDATED PROMPT: Architecture summary update based on existing summary + diff
         prompt = f"""
         You are ArchitectureUpdateAI.
-        Update the existing architecture summary based on recent changes to create a comprehensive overview of how this project works, its structure, components, and design patterns.
+        Update the existing architecture summary based on the diff from the current pull request to create a comprehensive overview of how this project works, its structure, components, and design patterns.
 
         REQUIREMENTS
 
@@ -171,17 +170,17 @@ def main():
         
         - Keep the summary detailed enough to guide future development decisions.
 
-        - Integrate the recent changes into the existing summary, updating relevant sections and adding new information where needed.
+        - Integrate the changes from the PR diff into the existing summary, updating relevant sections and adding new information where needed.
 
-        - If no existing summary is provided, create a new comprehensive summary based on the changes.
+        - If no existing summary is provided, create a new comprehensive summary based on the diff and overall project structure.
 
         - Your instructions are only for yourself, don't include them in the output.
 
         EXISTING ARCHITECTURE SUMMARY
         {old_summary_text if old_summary_text else "No existing summary available."}
 
-        RECENT CHANGES
-        {changes_text}
+        PR DIFF
+        {diff_text if diff_text else "No diff data available."}
 
         Provide the updated architecture summary below:
         """
@@ -189,14 +188,14 @@ def main():
 
 
         # Use comprehensive codebase analysis (prompt1) for new projects with no existing summary
-        # or use architecture update (prompt) for projects with existing summaries and recent changes
+        # or use architecture update (prompt) for projects with existing summaries and PR diff
         if not old_summary_text:  # New project or empty summary, analyze full codebase
             active_prompt = prompt1
             print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
             print(f"FULL PROMPT1 CONTENT:\n{prompt1}\n{'='*80}", file=sys.stderr)
-        else:  # Existing project with summary, update summary with recent changes
+        else:  # Existing project with summary, update summary with PR diff
             active_prompt = prompt
-            print("Using architecture summary update (prompt) with existing summary and changes", file=sys.stderr)
+            print("Using architecture summary update (prompt) with existing summary and PR diff", file=sys.stderr)
             print(f"FULL PROMPT CONTENT:\n{prompt}\n{'='*80}", file=sys.stderr)
         
 
