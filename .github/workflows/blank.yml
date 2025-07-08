@@ -32,6 +32,15 @@ jobs:
           python3 -m pip install --upgrade pip > /dev/null 2>&1
           pip install firebase-admin anthropic openai > /dev/null 2>&1
 
+      - name: Initialize AI cost tracking
+        run: |
+          cd .github/scripts && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
+
+      # Uncomment below to test cost tracking functionality
+      # - name: Test cost tracking (optional)
+      #   run: |
+      #     python3 .github/scripts/test_cost_tracking.py
+
       - name: Fetch configuration macros from Firebase
         id: fetch-macros
         continue-on-error: true
@@ -163,6 +172,12 @@ jobs:
         run: |
           python3 .github/scripts/ai_review.py 2>/tmp/ai_review_debug.log
 
+      - name: Display AI costs so far
+        if: always()
+        run: |
+          echo "=== AI COST CHECKPOINT AFTER REVIEW ==="
+          python3 .github/scripts/display_costs.py
+
       - name: Post line-by-line comments on PR
         env:
           REVIEW_TEXT: ${{ steps.ai-review.outputs.review_b64 }}
@@ -183,4 +198,13 @@ jobs:
             /tmp/ai_response.txt
             /tmp/line_comment.json
             /tmp/summary_comment.json
+            /tmp/ai_costs.json
+            /tmp/ai_cost_summary.txt
           retention-days: 7
+
+      - name: Finalize AI cost tracking and display summary
+        id: cost-summary
+        if: always()
+        run: |
+          echo "=== FINAL AI COST SUMMARY ==="
+          cd .github/scripts && python3 -c "from cost_tracker import finalize_cost_tracking; finalize_cost_tracking()"
