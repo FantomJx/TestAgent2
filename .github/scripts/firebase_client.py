@@ -7,6 +7,9 @@ from datetime import datetime
 import base64
 import logging
 
+# Configuration constants
+CHANGES_THRESHOLD = 5
+
 class FirebaseClient:
     def __init__(self, service_account_path=None, project_name="test"):
         try:
@@ -103,8 +106,12 @@ class FirebaseClient:
             logging.error(f"Error getting recent changes: {str(e)}")
             return []
     
-    def should_summarize(self, repository, changes_threshold=0):
+    def should_summarize(self, repository, changes_threshold=None):
         """Determine if we should regenerate the architecture summary"""
+        if changes_threshold is None:
+            # Get from environment variable or use default constant
+            changes_threshold = int(os.environ.get('CHANGES_THRESHOLD', CHANGES_THRESHOLD))
+            
         try:
             doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
             doc = doc_ref.get()
