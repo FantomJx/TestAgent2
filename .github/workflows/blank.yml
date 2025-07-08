@@ -73,7 +73,7 @@ jobs:
 
       - name: Track architecture changes in Firebase
         id: track-arch
-        if: steps.check-important.outputs.is_important_change == 'true' && false  # Temporarily disabled
+        if: steps.check-important.outputs.is_important_change == 'true'
         continue-on-error: true
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
