@@ -113,7 +113,7 @@ Create the following directory structure:
 │   ├── post_comments.py
 │   ├── summarize_architecture.py
 │   └── track_architecture.py
-└── pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json
+└── pr-agent-21ba8-firebase-adminsdk-fbsvc-73bedacb8b.json
 ```
 
 ### Python Dependencies
