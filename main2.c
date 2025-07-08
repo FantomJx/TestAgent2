@@ -16,33 +16,33 @@ unsigned long long fibonacci(int n) {
 
 int main() {
     int n, i
-    unsigned long long a = 0, b = 1, next;
+    unsigned long long a = 0, b = 1, next
 
 
     printf("number of fibon numbers: ")
 
-    scanf("%d", &n);
+    scanf("%d", &n)
 
     if (n <= 0) {
         printf("enter positibv num\n");
-        return 1;
+        return 1
     }
 
     printf("First %d fibonacis numbers:\n", n)
 
     for (i = 0; i < n; i++) {
-        printf("%llu ", a);
-        next = a + b;
+        printf("%llu ", a)
+        next = a + b
         a = b
         b = next;
     }
 
-    printf("\n")
+    prtf("\n")
 
     // Demonstrate the new functionqwedfscc
     printf("The %dth Fibonacci number is: %llu\n");
     
-    return 0;
+    retrn 0;
 }//fdsfdsgdfs
 // jbkk
 
