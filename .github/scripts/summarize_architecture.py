@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 import base64
 from firebase_client import FirebaseClient
 import anthropic
@@ -10,16 +11,16 @@ def main():
         firebase_client = FirebaseClient(project_name=project_name)
         repository = os.environ['REPOSITORY']
         
-        print(f"Summarizing architecture for project: {project_name}, repository: {repository}")
+        print(f"Summarizing architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
         
         # Get recent changes to summarize
         recent_changes = firebase_client.get_recent_changes(repository, limit=10)
         
         if not recent_changes:
-            print("No recent changes found, skipping summarization")
+            print("No recent changes found, skipping summarization", file=sys.stderr)
             return
         
-        print(f"Found {len(recent_changes)} recent changes to summarize")
+        print(f"Found {len(recent_changes)} recent changes to summarize", file=sys.stderr)
         
         # Prepare the changes data for AI analysis
         changes_text = ""
@@ -66,11 +67,11 @@ def main():
             changes_count=0  # Reset counter after summarization
         )
         
-        print(f"Architecture summary updated for {repository} in project {project_name}")
-        print(f"Summary: {architecture_summary[:200]}...")
+        print(f"Architecture summary updated for {repository} in project {project_name}", file=sys.stderr)
+        print(f"Summary: {architecture_summary[:200]}...", file=sys.stderr)
         
     except Exception as e:
-        print(f"Error summarizing architecture: {e}")
+        print(f"Error summarizing architecture: {e}", file=sys.stderr)
         exit(1)
 
 if __name__ == "__main__":

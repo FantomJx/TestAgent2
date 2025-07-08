@@ -1,5 +1,6 @@
 import os
 import base64
+import sys
 from firebase_client import FirebaseClient
 
 def main():
@@ -13,7 +14,7 @@ def main():
         pr_number = int(os.environ['PR_NUMBER'])
         diff_b64 = os.environ['DIFF_B64']
     
-        print(f"Tracking architecture for project: {project_name}, repository: {repository}")
+        print(f"Tracking architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
         
         # Decode the diff
         diff = base64.b64decode(diff_b64).decode('utf-8')
@@ -34,7 +35,7 @@ def main():
             metadata=metadata
         )
         
-        print(f"Architecture change added with ID: {change_id}")
+        print(f"Architecture change added with ID: {change_id}", file=sys.stderr)
         
         # Check if we should regenerate the summary
         should_summarize = firebase_client.should_summarize(repository)
@@ -48,9 +49,9 @@ def main():
                 summary=current_summary.get('summary', ''),
                 changes_count=changes_count
             )
-            print(f"Architecture summary updated with changes_count: {changes_count}")
+            print(f"Architecture summary updated with changes_count: {changes_count}", file=sys.stderr)
         else:
-            print("No existing summary found, creating new one")
+            print("No existing summary found, creating new one", file=sys.stderr)
             firebase_client.update_architecture_summary(
                 repository=repository,
                 summary="Initial architecture summary",
@@ -64,11 +65,11 @@ def main():
                 fh.write(f"change_id={change_id}\n")
         else:
             # Fallback for local testing
-            print(f"should_summarize={str(should_summarize).lower()}")
-            print(f"change_id={change_id}")
+            print(f"should_summarize={str(should_summarize).lower()}", file=sys.stderr)
+            print(f"change_id={change_id}", file=sys.stderr)
         
     except Exception as e:
-        print(f"Error tracking architecture: {e}")
+        print(f"Error tracking architecture: {e}", file=sys.stderr)
         
         # Write error output to GitHub Actions output file
         if 'GITHUB_OUTPUT' in os.environ:
@@ -76,7 +77,7 @@ def main():
                 fh.write("should_summarize=false\n")
         else:
             # Fallback for local testing
-            print("should_summarize=false")
+            print("should_summarize=false", file=sys.stderr)
         exit(1)
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ def main():
     
     if not repository:
         print("Error: REPOSITORY environment variable not set", file=sys.stderr)
-        print(f"context_b64={create_empty_context()}")
+        print(f"context_b64={create_empty_context()}", file=sys.stderr)
         return
     
     try:
@@ -115,7 +115,7 @@ def main():
                 fh.write(f"context_b64={context_b64}\n")
         else:
             # Fallback for local testing
-            print(f"context_b64={context_b64}")
+            print(f"context_b64={context_b64}", file=sys.stderr)
         
     except Exception as e:
         error_msg = str(e)
@@ -131,7 +131,7 @@ def main():
                 fh.write(f"context_b64={empty_context_b64}\n")
         else:
             # Fallback for local testing
-            print(f"context_b64={empty_context_b64}")
+            print(f"context_b64={empty_context_b64}", file=sys.stderr)
         
         # Only exit with error code for critical failures
         if 'REPOSITORY' not in os.environ:
