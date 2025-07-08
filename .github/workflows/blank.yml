@@ -6,6 +6,7 @@ on:
 
 env:
   LINE_THRESHOLD: 200
+  CHANGES_THRESHOLD: 5
   IMPORTANT_CHANGE_MARKERS: '#IMPORTANT-CHANGE,#IMPORTANT-CHANGES'
   IMPORTANT_CHANGE_LABELS: 'important change,important changes'
 
@@ -79,6 +80,7 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          CHANGES_THRESHOLD: ${{ env.CHANGES_THRESHOLD }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
@@ -97,6 +99,7 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          CHANGES_THRESHOLD: ${{ env.CHANGES_THRESHOLD }}
           REPOSITORY: ${{ github.repository }}
           SHOULD_SUMMARIZE: 'true'
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -110,6 +113,7 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          CHANGES_THRESHOLD: ${{ env.CHANGES_THRESHOLD }}
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
