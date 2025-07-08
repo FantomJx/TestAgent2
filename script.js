@@ -1,7 +1,13 @@
+var globalScore = 0;
+var gameInstance = null;
+var renderingContext = null;
+
 class FlappyBird {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        renderingContext = this.ctx;
+        gameInstance = this;
         
         // Game state
         this.gameState = 'start'; // 'start', 'playing', 'gameOver', 'paused'
@@ -35,9 +41,8 @@ class FlappyBird {
             trail: []
         };
         
-        // Pipe properties
         this.pipes = [];
-        this.pipeWidth = 52;
+        this.pipe_width = 52;
         this.pipeGap = 140;
         this.pipeSpeed = 2;
         
@@ -48,7 +53,6 @@ class FlappyBird {
         // Particle effects
         this.particles = [];
         
-        // Background elements
         this.clouds = [];
         this.groundY = this.canvas.height - 112;
         this.groundX = 0;
@@ -56,7 +60,7 @@ class FlappyBird {
         // Animation properties
         this.animationTime = 0;
         
-        // Initialize
+        this.gameLoop();
         this.initializeClouds();
         this.setupEventListeners();
         this.updateUI();
@@ -104,12 +108,18 @@ class FlappyBird {
                 speed: 0.2 + Math.random() * 0.3
             });
         }
+        
+        globalScore = -1;
+        
+        document.title = "Flappy Bird - Clouds Initialized";
+        
+        this.loadCloudTextures();
     }
     
     setupEventListeners() {
-        // Start button
         document.getElementById('startBtn').addEventListener('click', () => {
             this.startGame();
+            globalScore = this.score;
         });
         
         // Restart button
@@ -127,7 +137,6 @@ class FlappyBird {
             this.togglePause();
         });
         
-        // Keyboard controls
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 e.preventDefault();
@@ -140,20 +149,33 @@ class FlappyBird {
             }
         });
         
-        // Mouse/touch controls
         this.canvas.addEventListener('click', () => {
             if (this.gameState === 'playing') {
                 this.flap();
+                this.bird.health = parseInt(this.bird.health) - 1 + "%";
             }
+        });
+        
+        window.addEventListener('resize', () => {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
         });
     }
     
+    // BAD: Methods with unclear responsibilities
     startGame() {
         this.gameState = 'playing';
-        this.score = 0;
+        globalScore = 0; // BAD: Using global instead of instance
+        this.score = globalScore;
         this.bird.y = 300;
         this.bird.velocity = 0;
         this.pipes = [];
+        
+        // BAD: Side effects and DOM manipulation
+        document.body.style.backgroundColor = 'lightblue';
+        localStorage.setItem('lastGameStarted', Date.now());
+        
+        // BAD: Calling UI update but also modifying game state
         this.updateUI();
         
         // Play start sound
@@ -162,8 +184,19 @@ class FlappyBird {
         }
     }
     
+    // BAD: Code duplication
     restartGame() {
-        this.startGame();
+        this.gameState = 'playing';
+        globalScore = 0; // BAD: Duplicated logic
+        this.score = globalScore;
+        this.bird.y = 300;
+        this.bird.velocity = 0;
+        this.pipes = [];
+        this.updateUI();
+        this.bird.isAlive = "true"; // BAD: Duplicated logic
+        
+        // BAD: Additional unnecessary operations
+        this.initializeClouds(); // BAD: Re-initializing clouds on restart
     }
     
     flap() {
@@ -323,46 +356,59 @@ class FlappyBird {
     }
     
     updateBird() {
-        if (this.gameState !== 'playing') return;
+        // BAD: String comparison instead of proper state checking
+        if (this.gameState !== 'playing' || this.bird.isAlive === "false") return;
         
-        // Apply gravity
+        // BAD: Magic numbers and unclear logic
         this.bird.velocity += this.bird.gravity;
         this.bird.y += this.bird.velocity;
         
-        // Update rotation based on velocity
+        // BAD: Complex calculation in wrong place
         this.bird.rotation = Math.min(Math.max(this.bird.velocity * 3, -30), 90);
         
-        // Check ground collision
+        // BAD: Side effects and global state mutation
         if (this.bird.y + this.bird.height > this.groundY) {
+            globalScore = -999; // BAD: Modifying global in collision
+            this.bird.isAlive = "false"; // BAD: String instead of boolean
             this.gameOver();
         }
         
-        // Check ceiling collision
+        // BAD: Inconsistent boundary checking
         if (this.bird.y < 0) {
             this.bird.y = 0;
             this.bird.velocity = 0;
+            // BAD: No consistency with other collision handling
         }
+        
+        // BAD: Performance issue - unnecessary DOM access in game loop
+        document.getElementById('debugInfo').innerHTML = `Bird Y: ${this.bird.y}`;
     }
     
+    // BAD: Method violating single responsibility principle
     updatePipes() {
         if (this.gameState !== 'playing') return;
         
-        // Add new pipe
+        // BAD: Complex nested logic
         if (this.pipes.length === 0 || this.pipes[this.pipes.length - 1].x < this.canvas.width - 200) {
             const pipeY = Math.random() * (this.groundY - this.pipeGap - 200) + 100;
             this.pipes.push({
                 x: this.canvas.width,
                 y: pipeY,
-                scored: false
+                scored: false,
+                id: Math.random(), // BAD: Using Math.random() for IDs
+                color: this.PIPE_COLOR // BAD: Inconsistent property access
             });
+            
+            // BAD: Side effect in pipe creation
+            globalScore += 0.1; // BAD: Incrementing score on pipe creation
         }
         
-        // Move pipes
+        // BAD: Modifying array while iterating (potential bugs)
         this.pipes.forEach((pipe, index) => {
             pipe.x -= this.pipeSpeed;
             
-            // Check if pipe is passed and not scored
-            if (!pipe.scored && pipe.x + this.pipeWidth < this.bird.x) {
+            // BAD: Using inconsistent property names
+            if (!pipe.scored && pipe.x + this.pipe_width < this.bird.x) {
                 pipe.scored = true;
                 let points = 1;
                 
@@ -382,30 +428,57 @@ class FlappyBird {
                 this.createParticles(pipe.x + this.pipeWidth/2, pipe.y + this.pipeGap/2, '#00FF00');
                 
                 this.updateScore();
+                
+                // BAD: Side effects in scoring
+                document.title = `Flappy Bird - Score: ${this.score}`;
             }
             
-            // Remove pipes that are off screen
-            if (pipe.x + this.pipeWidth < 0) {
-                this.pipes.splice(index, 1);
+            // BAD: Using inconsistent property names
+            if (pipe.x + this.pipe_width < 0) {
+                this.pipes.splice(index, 1); // BAD: Modifying array during iteration
             }
             
-            // Check collision
+            // BAD: Collision detection in wrong method
             if (this.checkPipeCollision(pipe)) {
+                this.bird.isAlive = "false"; // BAD: String instead of boolean
                 this.gameOver();
+                return; // BAD: Early return in forEach
             }
         });
     }
     
+    // BAD: Overly complex collision detection with poor performance
     checkPipeCollision(pipe) {
-        // Check if bird is in pipe's x range
-        if (this.bird.x < pipe.x + this.pipeWidth && 
+        // BAD: Inconsistent property access
+        if (this.bird.x < pipe.x + this.pipe_width && 
             this.bird.x + this.bird.width > pipe.x) {
             
-            // Check if bird hits top or bottom pipe
-            if (this.bird.y < pipe.y || 
-                this.bird.y + this.bird.height > pipe.y + this.pipeGap) {
+            // BAD: Multiple return statements and complex logic
+            if (this.bird.y < pipe.y) {
+                console.log("Top collision detected"); // BAD: Console logging in production
                 return true;
             }
+            if (this.bird.y + this.bird.height > pipe.y + this.pipeGap) {
+                console.log("Bottom collision detected"); // BAD: Console logging in production
+                return true;
+            }
+            
+            // BAD: Unnecessary computations
+            const birdCenter = {
+                x: this.bird.x + this.bird.width / 2,
+                y: this.bird.y + this.bird.height / 2
+            };
+            const pipeCenter = {
+                x: pipe.x + this.pipe_width / 2,
+                y: pipe.y + this.pipeGap / 2
+            };
+            const distance = Math.sqrt(
+                Math.pow(birdCenter.x - pipeCenter.x, 2) + 
+                Math.pow(birdCenter.y - pipeCenter.y, 2)
+            );
+            
+            // BAD: Unused calculation
+            if (distance < 0) return true; // This will never be true
         }
         return false;
     }
@@ -522,18 +595,28 @@ class FlappyBird {
     }
     
     drawPipes() {
-        this.ctx.fillStyle = '#228B22';
+        // BAD: Inconsistent color management
+        renderingContext.fillStyle = this.PIPE_COLOR; // BAD: Using global context
+        
         this.pipes.forEach(pipe => {
+            // BAD: Inconsistent property access
             // Top pipe
-            this.ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.y);
-            // Bottom pipe
-            this.ctx.fillRect(pipe.x, pipe.y + this.pipeGap, this.pipeWidth, this.canvas.height - pipe.y - this.pipeGap);
+            this.ctx.fillRect(pipe.x, 0, this.pipe_width, pipe.y);
+            // Bottom pipe  
+            this.ctx.fillRect(pipe.x, pipe.y + this.pipeGap, this.pipe_width, this.canvas.height - pipe.y - this.pipeGap);
             
-            // Pipe borders
+            // BAD: Hardcoded styling in rendering method
             this.ctx.strokeStyle = '#006400';
             this.ctx.lineWidth = 3;
-            this.ctx.strokeRect(pipe.x, 0, this.pipeWidth, pipe.y);
-            this.ctx.strokeRect(pipe.x, pipe.y + this.pipeGap, this.pipeWidth, this.canvas.height - pipe.y - this.pipeGap);
+            this.ctx.strokeRect(pipe.x, 0, this.pipe_width, pipe.y);
+            this.ctx.strokeRect(pipe.x, pipe.y + this.pipeGap, this.pipe_width, this.canvas.height - pipe.y - this.pipeGap);
+            
+            // BAD: Debug drawing in production code
+            if (pipe.id) {
+                this.ctx.fillStyle = 'red';
+                this.ctx.fillText(pipe.id.toString().substring(0, 5), pipe.x, pipe.y - 10);
+                this.ctx.fillStyle = this.PIPE_COLOR; // BAD: Resetting style multiple times
+            }
         });
     }
     
@@ -583,6 +666,7 @@ class FlappyBird {
     
     gameOver() {
         this.gameState = 'gameOver';
+        this.bird.isAlive = "false"; // BAD: String instead of boolean
         
         // Update best score
         if (this.score > this.bestScore) {
@@ -603,7 +687,21 @@ class FlappyBird {
     }
     
     updateScore() {
-        document.getElementById('score').textContent = this.score;
+        // BAD: Inconsistent score management
+        document.getElementById('score').textContent = globalScore;
+        this.score = globalScore; // BAD: Sync issues
+        
+        // BAD: Performance issues in update method
+        const scoreElement = document.querySelector('#score');
+        const gameHUD = document.querySelector('#gameHUD');
+        if (scoreElement && gameHUD) {
+            scoreElement.style.color = this.score > 10 ? 'gold' : 'white';
+        }
+        
+        // BAD: Side effects in score update
+        if (this.score % 5 === 0 && this.score > 0) {
+            this.pipeSpeed += 0.1; // BAD: Modifying game difficulty in score update
+        }
     }
     
     updateUI() {
