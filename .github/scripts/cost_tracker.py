@@ -187,7 +187,15 @@ class CostTracker:
         
         # Highlight review vs summary costs
         review_data = summary['by_type'].get('review', {'cost': 0.0, 'calls': 0})
-        summary_data = summary['by_type'].get('summary', {'cost': 0.0, 'calls': 0})
+        
+        # Aggregate all summary-related call types (any type containing "summary" or "summarize")
+        summary_data = {'cost': 0.0, 'calls': 0, 'input_tokens': 0, 'output_tokens': 0}
+        for call_type, type_data in summary['by_type'].items():
+            if 'summary' in call_type.lower() or call_type.lower() == 'summarize':
+                summary_data['cost'] += type_data['cost']
+                summary_data['calls'] += type_data['calls']
+                summary_data['input_tokens'] += type_data['input_tokens']
+                summary_data['output_tokens'] += type_data['output_tokens']
         
         print(f"\nREVIEW vs SUMMARY BREAKDOWN:", file=sys.stderr)
         print("-" * 50, file=sys.stderr)
@@ -279,7 +287,9 @@ class CostTracker:
     def get_review_summary_breakdown(self) -> Dict:
         """Get detailed breakdown of review vs summary operations."""
         review_calls = [call for call in self.costs['calls'] if call['call_type'] == 'review']
-        summary_calls = [call for call in self.costs['calls'] if call['call_type'] == 'summary']
+        # Match any call type that contains "summary" (case-insensitive)
+        summary_calls = [call for call in self.costs['calls'] if 
+                        'summary' in call['call_type'].lower() or call['call_type'].lower() == 'summarize']
         
         def calculate_stats(calls):
             if not calls:
