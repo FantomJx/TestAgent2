@@ -69,6 +69,65 @@ def main():
         firebase_client = FirebaseClient(project_name=project_name)
         repository = os.environ['REPOSITORY']
         
+        if 'content' in data and isinstance(data['content'], list) and len(data['content']) > 0:
+            return data['content'][0].get('text', '')
+        else:
+            return data.get('text', '')
+    except Exception as e:
+        print(f'Error parsing Claude response: {e}', file=sys.stderr)
+        return ""
+
+
+def create_summarization_prompt(content: str) -> str:
+    """Create prompt for summarizing architecture changes."""
+    # Log content details for debugging
+    content_lines = content.count('\n')
+    content_length = len(content)
+    
+    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"SUMMARIZATION - CONTENT DETAILS", file=sys.stderr)
+    print(f"{'='*60}", file=sys.stderr)
+    print(f"Content Lines: {content_lines:,}", file=sys.stderr)
+    print(f"Content Characters: {content_length:,}", file=sys.stderr)
+    
+    print(f"\nFULL CONTENT TO SUMMARIZE:", file=sys.stderr)
+    print(f"{'-'*30}", file=sys.stderr)
+    print(content, file=sys.stderr)
+    print(f"{'-'*30}", file=sys.stderr)
+    print(f"{'='*60}\n", file=sys.stderr)
+    
+    # Truncate content if it's too large to avoid API limits
+    max_content_length = 60000  # Conservative limit for summarization
+    if content_length > max_content_length:
+        print(f"WARNING: Content is very large ({content_length:,} chars), truncating to {max_content_length:,} chars", file=sys.stderr)
+        content = content[:max_content_length] + "\n... (content truncated due to size)"
+    
+    return f"""You are SummarizerAI.
+Condense the following architecture history to ~40 % of its length while preserving all major technical decisions.
+
+REQUIREMENTS
+
+- Output plain text only—no Markdown, bullets, or special symbols.
+
+- Group related changes; keep milestones chronological.
+
+- Focus on: structural shifts, new components, large refactors, critical feature additions.
+
+- Omit metrics, meta‑notes, and trivial edits.
+
+- Your instuctions are only for yourself, don't include them in the output.
+
+SOURCE
+{content}
+
+Provide the compressed summary below:
+
+"""
+=======
+=======
+        print(f"Summarizing architecture for project: {project_name}, repository: {repository}")
+       
+=======
         print(f"Summarizing architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
         
         # Get recent changes to summarize

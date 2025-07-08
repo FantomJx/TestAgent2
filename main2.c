@@ -15,7 +15,7 @@ unsigned long long fibonacci(int n) {
 }
 
 int main() {
-    int n, i;
+    int n, i
     unsigned long long a = 0, b = 1, next;
 
 
@@ -33,7 +33,7 @@ int main() {
     for (i = 0; i < n; i++) {
         printf("%llu ", a);
         next = a + b;
-        a = b;
+        a = b
         b = next;
     }
 
@@ -45,3 +45,4 @@ int main() {
     return 0;
 }//fdsfdsgdfs
 // jbkk
+
