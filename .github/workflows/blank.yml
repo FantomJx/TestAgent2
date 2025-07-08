@@ -166,7 +166,7 @@ jobs:
           else
             echo "No changes to commit"
           fi
-=======
+          
       - name: Fetch architecture context from Firebase
         id: fetch-context
         continue-on-error: true
