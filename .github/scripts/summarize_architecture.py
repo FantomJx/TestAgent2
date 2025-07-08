@@ -86,6 +86,9 @@ def main():
         existing_summary = firebase_client.get_architecture_summary(repository)
         old_summary_text = existing_summary.get('summary', '') if existing_summary else ''
         
+        # Ensure we treat empty or whitespace-only summaries as no summary
+        old_summary_text = old_summary_text.strip() if old_summary_text else ''
+        
         if old_summary_text:
             print(f"Found existing architecture summary ({len(old_summary_text)} characters)", file=sys.stderr)
         else:
@@ -185,11 +188,11 @@ def main():
 
         # Use comprehensive codebase analysis (prompt1) for new projects with no existing summary
         # or use architecture update (prompt) for projects with existing summaries and recent changes
-        if not old_summary_text:  # New project, analyze full codebase
+        if not old_summary_text:  # New project or empty summary, analyze full codebase
             active_prompt = prompt1
             print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
             print(f"FULL PROMPT1 CONTENT:\n{prompt1}\n{'='*80}", file=sys.stderr)
-        else:  # Existing project, update summary with recent changes
+        else:  # Existing project with summary, update summary with recent changes
             active_prompt = prompt
             print("Using architecture summary update (prompt) with existing summary and changes", file=sys.stderr)
             print(f"FULL PROMPT CONTENT:\n{prompt}\n{'='*80}", file=sys.stderr)
