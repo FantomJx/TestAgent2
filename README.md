@@ -1,219 +1,309 @@
 # AI Code Review System
 
-A comprehensive GitHub Actions workflow that provides automated code review using AI models (Claude 4 Sonnet and GPT o3-mini) with intelligent model selection, architecture change tracking, and automatic summarization.
+An automated GitHub Actions-based code review system that leverages AI models (Claude 4 Sonnet and OpenAI o3-mini) to provide intelligent code analysis with context-aware architecture tracking and Firebase-powered change management.
 
-## Overview
+## System Overview
 
-This system automatically reviews pull requests using AI models and provides:
-- Line-by-line code review comments
-- Intelligent model selection based on PR characteristics
-- Architecture change tracking for important changes
-- Automatic summarization of architecture documentation
-- Support for both Claude and OpenAI APIs
+This system provides automated pull request review capabilities through a sophisticated multi-component architecture that combines AI-powered code analysis with persistent architecture tracking. The system automatically selects the appropriate AI model based on change complexity and maintains a comprehensive understanding of project evolution through Firebase-backed data persistence.
 
-## Architecture
+## Core Components
 
-The system consists of four main components:
-
-### 1. GitHub Actions Workflow (`.github/workflows/blank.yml`)
+### 1. GitHub Actions Orchestration (`/.github/workflows/blank.yml`)
+The primary workflow coordinates all system operations:
 - Triggers on pull request events (opened, synchronize, reopened)
-- Orchestrates the entire review process
-- Handles Git operations and conflict resolution
+- Implements security controls (blocks forks, draft PRs)
+- Manages Git operations with full history access
+- Orchestrates component execution with dependency management
+- Handles artifact collection and debugging support
 
-### 2. AI Review Engine (`.github/scripts/ai_review.py`)
-- Performs the actual code review using AI models
-- Implements intelligent model selection logic
-- Filters out workflow files from review
-- Handles API communication with Claude and OpenAI
+### 2. AI Review Engine (`/.github/scripts/ai_review.py`)
+Central review processing component:
+- Implements intelligent model selection based on PR characteristics
+- Processes Git diffs with architectural context integration
+- Handles API communication for both Claude and OpenAI services
+- Provides content filtering and size optimization
+- Manages error handling and fallback scenarios
 
-### 3. Architecture Tracker (`.github/scripts/track_architecture.py`)
-- Tracks significant architectural changes
-- Maintains a running log of modifications
-- Triggers summarization when needed
+### 3. Firebase Integration Layer
+Multiple components manage persistent data:
 
-### 4. Comment Poster (`.github/scripts/post_comments.py`)
-- Posts line-by-line comments to GitHub PRs
-- Handles JSON parsing and error recovery
-- Posts summary comments with review statistics
+**Firebase Client (`/.github/scripts/firebase_client.py`)**
+- Provides unified Firebase Firestore access
+- Manages authentication and connection handling
+- Implements data operations for architecture summaries and changes
+- Handles error recovery and retry logic
 
-## Setup Instructions
+**Architecture Tracker (`/.github/scripts/track_architecture.py`)**
+- Records significant architectural changes in Firebase
+- Manages change counting and summarization triggers
+- Associates changes with PR metadata
+- Determines when architectural summaries require regeneration
 
-### Step 1: Repository Secrets Configuration
+**Context Fetcher (`/.github/scripts/fetch_firebase_context.py`)**
+- Retrieves architectural context for review operations
+- Manages local file integration with Firebase data
+- Provides fallback mechanisms for Firebase unavailability
+- Handles data encoding for workflow integration
 
-Configure the following secrets in your GitHub repository (Settings > Secrets and variables > Actions):
+**Architecture Summarizer (`/.github/scripts/summarize_architecture.py`)**
+- Generates comprehensive project architecture summaries
+- Analyzes entire codebase for new projects
+- Updates existing summaries with incremental changes
+- Utilizes Claude for natural language architecture documentation
 
-#### Required Secrets:
-- `ANTHROPIC_API_KEY`: Your Anthropic API key for Claude access
-- `OPENAI_API_KEY`: Your OpenAI API key for GPT access
-- `PAT_TOKEN`: Personal Access Token with the following permissions:
+### 4. Comment Management System (`/.github/scripts/post_comments.py`)
+GitHub integration component:
+- Parses AI-generated review responses
+- Posts line-by-line comments to pull requests
+- Handles JSON formatting and error recovery
+- Generates summary comments with review statistics
+- Manages GitHub API rate limiting and permissions
+
+## Prerequisites and Configuration
+
+### Required GitHub Repository Secrets
+
+Configure these secrets in repository Settings > Secrets and variables > Actions:
+
+**AI Service Authentication:**
+- `ANTHROPIC_API_KEY`: Anthropic API key for Claude model access
+- `OPENAI_API_KEY`: OpenAI API key for o3-mini model access
+
+**GitHub Access:**
+- `PAT_TOKEN`: Personal Access Token with permissions:
   - `repo` (full repository access)
-  - `pull_requests` (read and write)
-  - `contents` (read and write)
+  - `contents` (read and write access)
+  - `pull-requests` (write access for comments)
 
-#### PAT Token Setup:
-1. Go to GitHub Settings > Developer settings > Personal access tokens
-2. Generate a new token (classic) with the required permissions
-3. Add it as `PAT_TOKEN` in your repository secrets
+**Firebase Configuration:**
+- `FIREBASE_PROJECT_ID`: Firebase project identifier
+- `FIREBASE_PRIVATE_KEY`: Firebase service account private key
+- `FIREBASE_CLIENT_EMAIL`: Firebase service account client email
 
-### Step 2: Workflow File Setup
+### Firebase Service Account Setup
 
-1. Create the `.github/workflows/` directory structure in your repository
-2. Copy the workflow file to `.github/workflows/blank.yml`
-3. Copy all Python scripts to `.github/scripts/` directory:
-   - `ai_review.py`
-   - `track_architecture.py`
-   - `summarize_architecture.py`
-   - `post_comments.py`
+1. Create a Firebase project or use existing project
+2. Generate a service account key in Firebase Console:
+   - Go to Project Settings > Service Accounts
+   - Generate new private key
+   - Extract the required fields for GitHub secrets
+3. Place the complete service account JSON file at:
+   `/.github/pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json`
 
-### Step 3: Configuration Variables
+### Personal Access Token Configuration
 
-The workflow uses the following configurable environment variables:
+1. Navigate to GitHub Settings > Developer settings > Personal access tokens
+2. Generate new token (classic) with required permissions
+3. Configure as `PAT_TOKEN` repository secret
 
-- `LINE_THRESHOLD`: Number of changed lines that triggers Claude usage (default: 0)
-- Set this in the workflow file's `env` section
+## Deployment Instructions
 
-## Usage
+### Repository Structure Setup
 
-### Basic Code Review
-
-The system automatically reviews all pull requests. No special configuration required.
-
-### Architecture Change Tracking
-
-To enable architecture tracking for important changes:
-
-1. Add `#IMPORTANT-CHANGE` to your pull request title
-2. The system will automatically track the changes in `architecture_summary.txt`
-3. When the file grows large, it will be automatically summarized
-
-### Model Selection Logic
-
-The system intelligently selects between AI models:
-
-**Claude 4 Sonnet is used when:**
-- PR has "important changes" label
-- Changed lines exceed the `LINE_THRESHOLD`
-- PR title contains `#IMPORTANT-CHANGE`
-
-**GPT o3-mini is used for:**
-- Small PRs under the threshold
-- Regular maintenance changes
-
-### Labels
-
-Add the following labels to your repository for enhanced functionality:
-- `important changes`: Forces Claude usage regardless of PR size
-
-## Features
-
-### Intelligent Review
-- Considers architectural context from previous changes
-- Focuses only on added/modified lines
-- Provides actionable, specific feedback
-- Avoids reviewing workflow files
-
-### Architecture Tracking
-- Maintains a log of significant changes
-- Automatically summarizes when the log grows large
-- Creates timestamped backups before summarization
-- Tracks file modifications and PR metadata
-
-### Error Handling
-- Graceful handling of API failures
-- Git conflict resolution
-- JSON parsing with error recovery
-- Extensive logging for debugging
-
-### Performance Optimization
-- Filters out non-essential files from review
-- Truncates large diffs to avoid API limits
-- Implements payload size warnings
-- Optimized for token usage
-
-## File Structure
+Create the following directory structure:
 
 ```
 .github/
 ├── workflows/
-│   └── blank.yml                 # Main workflow file
-└── scripts/
-    ├── ai_review.py             # AI review engine
-    ├── track_architecture.py    # Architecture change tracker
-    ├── summarize_architecture.py # Architecture summarizer
-    └── post_comments.py         # Comment posting system
-architecture_summary.txt          # Architecture change log
+│   └── blank.yml
+├── scripts/
+│   ├── ai_review.py
+│   ├── firebase_client.py
+│   ├── fetch_firebase_context.py
+│   ├── post_comments.py
+│   ├── summarize_architecture.py
+│   └── track_architecture.py
+└── pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json
 ```
 
-## Troubleshooting
+### Python Dependencies
 
-### Common Issues
+The system automatically installs required packages:
+- `firebase-admin`: Firebase Firestore integration
+- `anthropic`: Claude API client
+- `openai`: OpenAI API client
 
-**API Key Errors:**
-- Verify all required secrets are set correctly
-- Check API key permissions and quotas
-- Ensure keys are active and not expired
+### Environment Configuration
 
-**Permission Errors:**
-- Verify PAT token has required permissions
-- Check repository permissions for the token
-- Ensure the token belongs to a user with appropriate access
+Modify workflow environment variables as needed:
 
-**No Comments Posted:**
-- Check if the AI found any issues (empty array is valid)
-- Verify the diff contains meaningful changes
-- Check GitHub API rate limits
+```yaml
+env:
+  LINE_THRESHOLD: 200                    # Lines changed threshold for Claude selection
+  IMPORTANT_CHANGE_MARKERS: '#IMPORTANT-CHANGE,#IMPORTANT-CHANGES'
+  IMPORTANT_CHANGE_LABELS: 'important change,important changes'
+```
 
-### Debug Information
+## Operational Procedures
 
-The system provides extensive logging:
-- Payload sizes and content details
-- API call status and responses
-- File filtering information
-- Model selection reasoning
+### Standard Code Review Process
 
-Check the workflow logs for detailed debugging information.
+1. System automatically activates on pull request creation or updates
+2. Generates diff excluding workflow files and sensitive directories
+3. Selects appropriate AI model based on change characteristics
+4. Retrieves architectural context from Firebase
+5. Performs AI-powered code analysis
+6. Posts line-by-line comments and summary to pull request
 
-## Workflow Steps Explained
+### Architecture Change Tracking
 
-1. **Checkout**: Fetches the full repository history
-2. **Generate Diff**: Creates a diff excluding workflow files
-3. **Track Architecture**: Records changes for important PRs
-4. **Summarize**: Condenses architecture log when needed
-5. **Commit Changes**: Saves architecture updates back to repo
-6. **Choose Model**: Selects appropriate AI model
-7. **AI Review**: Performs the actual code review
-8. **Post Comments**: Publishes review comments to PR
-9. **Upload Artifacts**: Saves logs and responses for debugging
+For significant architectural modifications:
 
-## Customization
+1. Add `#IMPORTANT-CHANGE` marker to pull request title, or
+2. Apply `important changes` label to pull request
+3. System automatically:
+   - Records changes in Firebase with metadata
+   - Increments change counter
+   - Triggers summarization when threshold reached
+   - Updates architectural documentation
 
-### Adjusting Thresholds
-- Modify `LINE_THRESHOLD` in the workflow file
-- Adjust content length limits in Python scripts
-- Change summarization triggers in architecture tracker
+### Model Selection Algorithm
 
-### Adding New Models
-- Extend the model selection logic in `ai_review.py`
-- Add new API handlers as needed
-- Update payload creation functions
+**Claude 4 Sonnet Selection Criteria:**
+- Pull request contains important change markers in title
+- Pull request has important change labels applied
+- Modified lines exceed configured threshold (default: 200)
 
-### Custom Filtering
-- Modify file filtering logic in relevant scripts
-- Add new patterns to exclude from review
-- Customize architecture tracking criteria
+**OpenAI o3-mini Selection Criteria:**
+- Pull request modifications below threshold
+- Standard maintenance and bug fix changes
+- No importance indicators present
 
-## Best Practices
+## System Features
 
-1. **Regular Monitoring**: Check workflow logs regularly
-2. **API Quota Management**: Monitor API usage and limits
-3. **Token Rotation**: Regularly rotate PAT tokens
-4. **Architecture Reviews**: Periodically review the architecture summary
-5. **Backup Strategy**: The system creates backups, but consider additional measures
+### Intelligent Context Management
 
-## Support
+**Architectural Context Integration:**
+- Maintains project architecture understanding through Firebase
+- Provides historical context for review decisions
+- Automatically creates architecture summaries for new projects
+- Updates documentation based on accumulated changes
 
-For issues and contributions:
-1. Check the workflow logs for error details
-2. Verify all secrets are properly configured
-3. Ensure API keys have sufficient quotas
-4. Review the architecture summary for context
+**Content-Aware Processing:**
+- Excludes workflow files from review to prevent recursive modifications
+- Filters build artifacts and temporary files
+- Focuses analysis on meaningful code changes
+- Implements size limits to manage API costs
+
+### Error Handling and Resilience
+
+**API Failure Management:**
+- Implements exponential backoff for transient failures
+- Provides fallback mechanisms for service unavailability
+- Continues workflow execution with degraded functionality
+- Extensive logging for troubleshooting
+
+**Data Integrity Protection:**
+- Creates timestamped backups before summarization
+- Validates JSON responses with error recovery
+- Handles malformed AI responses gracefully
+- Maintains audit trail of all operations
+
+### Security Implementation
+
+**Access Control:**
+- Prevents execution on forked repositories
+- Blocks processing of draft pull requests
+- Uses secure secret management for API keys
+- Implements permission validation
+
+**Data Protection:**
+- Excludes sensitive files from analysis
+- Manages API payload sizes to prevent data exposure
+- Implements secure base64 encoding for data transfer
+- Validates input parameters and file paths
+
+## Performance Optimization
+
+### API Efficiency
+- Truncates large files to prevent token limit exceeding
+- Implements payload size monitoring and warnings
+- Optimizes prompt engineering for token usage
+- Batches operations where possible
+
+### Firebase Optimization
+- Uses efficient Firestore queries with proper indexing
+- Implements connection pooling and reuse
+- Limits data retrieval to essential information
+- Manages collection structures for optimal performance
+
+## Troubleshooting Guide
+
+### Common Configuration Issues
+
+**Authentication Failures:**
+- Verify all required secrets are properly configured
+- Check Firebase service account permissions
+- Validate API key quotas and billing status
+- Ensure PAT token has sufficient repository permissions
+
+**Review Processing Failures:**
+- Monitor workflow execution logs for detailed error information
+- Check API response status and error messages
+- Verify diff generation and content filtering
+- Validate JSON parsing and response formatting
+
+**Firebase Connectivity Issues:**
+- Confirm Firebase project configuration
+- Check service account key validity
+- Verify Firestore database rules and permissions
+- Monitor Firebase quota usage and billing
+
+### Debugging Procedures
+
+**Workflow Diagnostics:**
+- Examine GitHub Actions workflow logs
+- Review uploaded artifacts for detailed responses
+- Check step execution status and conditional logic
+- Monitor resource usage and timeout issues
+
+**Component-Level Debugging:**
+- Enable verbose logging in Python scripts
+- Examine temporary files created during execution
+- Validate environment variable configuration
+- Test Firebase connectivity independently
+
+**Performance Analysis:**
+- Monitor API response times and payload sizes
+- Analyze token usage patterns
+- Review Firebase operation efficiency
+- Check GitHub API rate limit consumption
+
+## Customization Options
+
+### Threshold Adjustment
+Modify review sensitivity by adjusting:
+- `LINE_THRESHOLD`: Change detection sensitivity
+- Firebase summarization triggers
+- Content length limits for API calls
+- File size limits for analysis
+
+### Model Configuration
+Extend AI model support:
+- Add new model providers to `ai_review.py`
+- Implement custom payload formatting
+- Configure model-specific parameters
+- Update selection logic algorithms
+
+### Architecture Tracking Customization
+Configure change detection:
+- Modify importance detection patterns
+- Adjust summarization frequency
+- Customize Firebase data structures
+- Implement custom change categorization
+
+## Maintenance Procedures
+
+### Regular Operations
+- Monitor API usage and costs
+- Review Firebase storage utilization
+- Update dependencies and security patches
+- Validate backup and recovery procedures
+
+### Scaling Considerations
+- Monitor GitHub Actions usage quotas
+- Plan for increased Firebase data volumes
+- Consider API rate limiting impacts
+- Implement monitoring and alerting systems
+
+This system provides a comprehensive, production-ready solution for automated code review with persistent architectural understanding, suitable for teams requiring consistent code quality enforcement with minimal manual intervention.
