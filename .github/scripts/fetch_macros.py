@@ -26,11 +26,11 @@ def initialize_firebase():
         cred = credentials.Certificate(service_account_path)
         firebase_admin.initialize_app(cred)
         
-        print("✅ Firebase initialized successfully")
+        print("Firebase initialized successfully")
         return True
         
     except Exception as e:
-        print(f"❌ Error initializing Firebase: {e}")
+        print(f"Error initializing Firebase: {e}")
         return False
 
 def fetch_macros():
@@ -44,11 +44,11 @@ def fetch_macros():
         doc = doc_ref.get()
         
         if not doc.exists:
-            print("⚠️  No macros document found in Firestore")
+            print("No macros document found in Firestore")
             return None
         
         macros_data = doc.to_dict()
-        print("✅ Successfully fetched macros from Firestore:")
+        print("Successfully fetched macros from Firestore:")
         
         # Define expected macro keys with defaults
         expected_macros = {
@@ -70,12 +70,12 @@ def fetch_macros():
         return macros_data
         
     except Exception as e:
-        print(f"❌ Error fetching macros: {e}")
+        print(f"Error fetching macros: {e}")
         return None
 
 def main():
     """Main function."""
-    print("🔥 Fetching macro configuration from Firebase...")
+    print("Fetching macro configuration from Firebase...")
     
     # Initialize Firebase
     if not initialize_firebase():
@@ -84,10 +84,10 @@ def main():
     # Fetch macros
     macros = fetch_macros()
     if macros is None:
-        print("❌ Failed to fetch macros")
+        print("Failed to fetch macros")
         sys.exit(1)
     
-    print("✅ Macro fetch completed successfully")
+    print("Macro fetch completed successfully")
 
 if __name__ == "__main__":
     main()
