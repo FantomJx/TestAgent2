@@ -18,7 +18,7 @@ class CostTracker:
             'input': 1.10,   # $1.10/MTok
             'output': 4.40   # $4.40/MTok
         },
-        'gpt-4.1-nano': {
+        'gpt-4.1-nano-2025-04-14': {
             'input': 0.10,   # $0.50/MTok (estimated pricing)
             'output': 0.40   # $2.00/MTok (estimated pricing)
         }
