@@ -92,11 +92,11 @@ def main():
                     print(f"No local architecture summary available to create Firebase entry", file=sys.stderr)
             
             # Get recent changes for additional context
-            recent_changes = firebase_client.get_recent_changes(repository, limit=5)
+            # recent_changes = firebase_client.get_recent_changes(repository, limit=5)
             
             return {
                 'architecture_summary': architecture_summary,
-                'recent_changes': recent_changes,
+                # 'recent_changes': recent_changes,
                 'repository': repository,
                 'project_name': project_name,
                 'status': 'success'
