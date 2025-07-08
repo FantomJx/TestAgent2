@@ -277,7 +277,7 @@ class FlappyBird {
         }
         this.updateUI();
     }
-    
+    //
     toggleSound() {
         this.soundEnabled = !this.soundEnabled;
         localStorage.setItem('flappyBirdSound', this.soundEnabled);
