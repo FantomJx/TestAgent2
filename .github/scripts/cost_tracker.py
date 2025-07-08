@@ -104,14 +104,14 @@ class CostTracker:
         self.costs['total_cost'] += cost
         
         # Log the cost information with more detail
-        print(f"📊 AI Cost Tracking - {call_type.upper()}:", file=sys.stderr)
-        print(f"  🤖 Model: {model}", file=sys.stderr)
-        print(f"  📥 Input tokens: {input_tokens:,}", file=sys.stderr)
-        print(f"  📤 Output tokens: {output_tokens:,}", file=sys.stderr)
-        print(f"  💰 Cost: ${cost:.6f}", file=sys.stderr)
-        print(f"  ⏰ Time: {timestamp}", file=sys.stderr)
+        print(f"AI Cost Tracking - {call_type.upper()}:", file=sys.stderr)
+        print(f"  Model: {model}", file=sys.stderr)
+        print(f"  Input tokens: {input_tokens:,}", file=sys.stderr)
+        print(f"  Output tokens: {output_tokens:,}", file=sys.stderr)
+        print(f"  Cost: ${cost:.6f}", file=sys.stderr)
+        print(f"  Time: {timestamp}", file=sys.stderr)
         if context:
-            print(f"  📝 Context: {context}", file=sys.stderr)
+            print(f"  Context: {context}", file=sys.stderr)
         
         self._save_costs()
         return cost
@@ -168,84 +168,84 @@ class CostTracker:
         summary = self.get_summary()
         
         print("\n" + "="*80, file=sys.stderr)
-        print("🤖 AI USAGE COST SUMMARY", file=sys.stderr)
+        print("AI USAGE COST SUMMARY", file=sys.stderr)
         print("="*80, file=sys.stderr)
         
         # Overall summary
-        print(f"💰 Total Cost: ${summary['total_cost']:.6f}", file=sys.stderr)
-        print(f"📞 Total API Calls: {summary['total_calls']}", file=sys.stderr)
-        print(f"📥 Total Input Tokens: {summary['total_input_tokens']:,}", file=sys.stderr)
-        print(f"📤 Total Output Tokens: {summary['total_output_tokens']:,}", file=sys.stderr)
-        print(f"🔢 Total Tokens: {summary['total_input_tokens'] + summary['total_output_tokens']:,}", file=sys.stderr)
+        print(f"Total Cost: ${summary['total_cost']:.6f}", file=sys.stderr)
+        print(f"Total API Calls: {summary['total_calls']}", file=sys.stderr)
+        print(f"Total Input Tokens: {summary['total_input_tokens']:,}", file=sys.stderr)
+        print(f"Total Output Tokens: {summary['total_output_tokens']:,}", file=sys.stderr)
+        print(f"Total Tokens: {summary['total_input_tokens'] + summary['total_output_tokens']:,}", file=sys.stderr)
         
         # Average cost per call
         if summary['total_calls'] > 0:
             avg_cost = summary['total_cost'] / summary['total_calls']
             avg_tokens = (summary['total_input_tokens'] + summary['total_output_tokens']) / summary['total_calls']
-            print(f"📊 Average Cost per Call: ${avg_cost:.6f}", file=sys.stderr)
-            print(f"📊 Average Tokens per Call: {avg_tokens:,.0f}", file=sys.stderr)
+            print(f"Average Cost per Call: ${avg_cost:.6f}", file=sys.stderr)
+            print(f"Average Tokens per Call: {avg_tokens:,.0f}", file=sys.stderr)
         
         # Highlight review vs summary costs
         review_data = summary['by_type'].get('review', {'cost': 0.0, 'calls': 0})
         summary_data = summary['by_type'].get('summary', {'cost': 0.0, 'calls': 0})
         
-        print(f"\n🔍 REVIEW vs SUMMARY BREAKDOWN:", file=sys.stderr)
+        print(f"\nREVIEW vs SUMMARY BREAKDOWN:", file=sys.stderr)
         print("-" * 50, file=sys.stderr)
-        print(f"🔍 Review Operations:", file=sys.stderr)
-        print(f"   💰 Cost: ${review_data['cost']:.6f} ({(review_data['cost']/summary['total_cost']*100 if summary['total_cost'] > 0 else 0):.1f}%)", file=sys.stderr)
-        print(f"   📞 Calls: {review_data['calls']}", file=sys.stderr)
-        print(f"   📥 Input: {review_data.get('input_tokens', 0):,} tokens", file=sys.stderr)
-        print(f"   📤 Output: {review_data.get('output_tokens', 0):,} tokens", file=sys.stderr)
+        print(f"Review Operations:", file=sys.stderr)
+        print(f"   Cost: ${review_data['cost']:.6f} ({(review_data['cost']/summary['total_cost']*100 if summary['total_cost'] > 0 else 0):.1f}%)", file=sys.stderr)
+        print(f"   Calls: {review_data['calls']}", file=sys.stderr)
+        print(f"   Input: {review_data.get('input_tokens', 0):,} tokens", file=sys.stderr)
+        print(f"   Output: {review_data.get('output_tokens', 0):,} tokens", file=sys.stderr)
         
-        print(f"📝 Summary Operations:", file=sys.stderr)
-        print(f"   💰 Cost: ${summary_data['cost']:.6f} ({(summary_data['cost']/summary['total_cost']*100 if summary['total_cost'] > 0 else 0):.1f}%)", file=sys.stderr)
-        print(f"   📞 Calls: {summary_data['calls']}", file=sys.stderr)
-        print(f"   📥 Input: {summary_data.get('input_tokens', 0):,} tokens", file=sys.stderr)
-        print(f"   📤 Output: {summary_data.get('output_tokens', 0):,} tokens", file=sys.stderr)
+        print(f"Summary Operations:", file=sys.stderr)
+        print(f"   Cost: ${summary_data['cost']:.6f} ({(summary_data['cost']/summary['total_cost']*100 if summary['total_cost'] > 0 else 0):.1f}%)", file=sys.stderr)
+        print(f"   Calls: {summary_data['calls']}", file=sys.stderr)
+        print(f"   Input: {summary_data.get('input_tokens', 0):,} tokens", file=sys.stderr)
+        print(f"   Output: {summary_data.get('output_tokens', 0):,} tokens", file=sys.stderr)
         
-        print(f"\n🤖 COST BY MODEL:", file=sys.stderr)
+        print(f"\nCOST BY MODEL:", file=sys.stderr)
         print("-" * 50, file=sys.stderr)
         for model, data in summary['by_model'].items():
             percentage = (data['cost']/summary['total_cost']*100 if summary['total_cost'] > 0 else 0)
             efficiency = data['cost'] / (data['input_tokens'] + data['output_tokens']) * 1000000 if (data['input_tokens'] + data['output_tokens']) > 0 else 0
-            print(f"🤖 {model}:", file=sys.stderr)
-            print(f"   💰 Cost: ${data['cost']:.6f} ({percentage:.1f}%)", file=sys.stderr)
-            print(f"   📞 Calls: {data['calls']}", file=sys.stderr)
-            print(f"   📥 Input: {data['input_tokens']:,} tokens", file=sys.stderr)
-            print(f"   📤 Output: {data['output_tokens']:,} tokens", file=sys.stderr)
-            print(f"   ⚡ Efficiency: ${efficiency:.2f} per MTok", file=sys.stderr)
+            print(f"{model}:", file=sys.stderr)
+            print(f"   Cost: ${data['cost']:.6f} ({percentage:.1f}%)", file=sys.stderr)
+            print(f"   Calls: {data['calls']}", file=sys.stderr)
+            print(f"   Input: {data['input_tokens']:,} tokens", file=sys.stderr)
+            print(f"   Output: {data['output_tokens']:,} tokens", file=sys.stderr)
+            print(f"   Efficiency: ${efficiency:.2f} per MTok", file=sys.stderr)
         
-        print(f"\n📋 COST BY OPERATION TYPE:", file=sys.stderr)
+        print(f"\nCOST BY OPERATION TYPE:", file=sys.stderr)
         print("-" * 50, file=sys.stderr)
         for op_type, data in summary['by_type'].items():
             percentage = (data['cost']/summary['total_cost']*100 if summary['total_cost'] > 0 else 0)
-            print(f"📌 {op_type.upper()}:", file=sys.stderr)
-            print(f"   💰 Cost: ${data['cost']:.6f} ({percentage:.1f}%)", file=sys.stderr)
-            print(f"   📞 Calls: {data['calls']}", file=sys.stderr)
-            print(f"   📥 Input: {data['input_tokens']:,} tokens", file=sys.stderr)
-            print(f"   📤 Output: {data['output_tokens']:,} tokens", file=sys.stderr)
+            print(f"{op_type.upper()}:", file=sys.stderr)
+            print(f"   Cost: ${data['cost']:.6f} ({percentage:.1f}%)", file=sys.stderr)
+            print(f"   Calls: {data['calls']}", file=sys.stderr)
+            print(f"   Input: {data['input_tokens']:,} tokens", file=sys.stderr)
+            print(f"   Output: {data['output_tokens']:,} tokens", file=sys.stderr)
             if data['calls'] > 0:
                 avg_cost_per_call = data['cost'] / data['calls']
-                print(f"   📊 Avg Cost/Call: ${avg_cost_per_call:.6f}", file=sys.stderr)
+                print(f"   Avg Cost/Call: ${avg_cost_per_call:.6f}", file=sys.stderr)
         
         # Cost trends and insights
         if len(summary['individual_calls']) > 1:
-            print(f"\n📈 COST INSIGHTS:", file=sys.stderr)
+            print(f"\nCOST INSIGHTS:", file=sys.stderr)
             print("-" * 50, file=sys.stderr)
             
             # Most expensive call
             most_expensive = max(summary['individual_calls'], key=lambda x: x['cost'])
-            print(f"💸 Most Expensive Call: {most_expensive['call_type']} - ${most_expensive['cost']:.6f}", file=sys.stderr)
+            print(f"Most Expensive Call: {most_expensive['call_type']} - ${most_expensive['cost']:.6f}", file=sys.stderr)
             
             # Most token-heavy call
             token_heavy = max(summary['individual_calls'], 
                              key=lambda x: x['input_tokens'] + x['output_tokens'])
             total_tokens = token_heavy['input_tokens'] + token_heavy['output_tokens']
-            print(f"🔢 Most Token-Heavy Call: {token_heavy['call_type']} - {total_tokens:,} tokens", file=sys.stderr)
+            print(f"Most Token-Heavy Call: {token_heavy['call_type']} - {total_tokens:,} tokens", file=sys.stderr)
             
             # Cost per operation type efficiency
             if len(summary['by_type']) > 1:
-                print(f"⚡ Operation Efficiency ($/call):", file=sys.stderr)
+                print(f"Operation Efficiency ($/call):", file=sys.stderr)
                 for op_type, data in sorted(summary['by_type'].items(), 
                                           key=lambda x: x[1]['cost']/x[1]['calls'] if x[1]['calls'] > 0 else 0, 
                                           reverse=True):
@@ -254,7 +254,7 @@ class CostTracker:
                         print(f"   {op_type}: ${efficiency:.6f}", file=sys.stderr)
         
         if summary['individual_calls'] and len(summary['individual_calls']) <= 10:
-            print(f"\n📜 INDIVIDUAL CALLS:", file=sys.stderr)
+            print(f"\nINDIVIDUAL CALLS:", file=sys.stderr)
             print("-" * 50, file=sys.stderr)
             for i, call in enumerate(summary['individual_calls'], 1):
                 timestamp = call.get('timestamp', 'Unknown')
@@ -268,11 +268,11 @@ class CostTracker:
                     time_str = 'Unknown'
                 
                 total_tokens = call['input_tokens'] + call['output_tokens']
-                print(f"{i:2d}. ⏰ {time_str} | 📌 {call['call_type'].upper()} | 🤖 {call['model']}", file=sys.stderr)
-                print(f"    📥 {call['input_tokens']:,} in, 📤 {call['output_tokens']:,} out | 💰 ${call['cost']:.6f}", file=sys.stderr)
+                print(f"{i:2d}. {time_str} | {call['call_type'].upper()} | {call['model']}", file=sys.stderr)
+                print(f"    {call['input_tokens']:,} in, {call['output_tokens']:,} out | ${call['cost']:.6f}", file=sys.stderr)
                 if call.get('context'):
                     context_preview = call['context'][:50] + "..." if len(call['context']) > 50 else call['context']
-                    print(f"    📝 {context_preview}", file=sys.stderr)
+                    print(f"    {context_preview}", file=sys.stderr)
         
         print("="*80, file=sys.stderr)
     
@@ -344,13 +344,13 @@ class CostTracker:
         summary = self.get_summary()
         breakdown = self.get_review_summary_breakdown()
         
-        print(f"💰 Total: ${summary['total_cost']:.6f} | 📞 Calls: {summary['total_calls']} | 🔢 Tokens: {summary['total_input_tokens'] + summary['total_output_tokens']:,}", file=sys.stderr)
+        print(f"TOTAL COST: ${summary['total_cost']:.6f} | Calls: {summary['total_calls']} | Tokens: {summary['total_input_tokens'] + summary['total_output_tokens']:,}", file=sys.stderr)
         
         if breakdown['review']['total_calls'] > 0:
-            print(f"🔍 Review: ${breakdown['review']['total_cost']:.6f} ({breakdown['comparison']['review_percentage']:.1f}%) | 📞 {breakdown['review']['total_calls']} calls", file=sys.stderr)
+            print(f"Review: ${breakdown['review']['total_cost']:.6f} ({breakdown['comparison']['review_percentage']:.1f}%) | {breakdown['review']['total_calls']} calls", file=sys.stderr)
         
         if breakdown['summary']['total_calls'] > 0:
-            print(f"📝 Summary: ${breakdown['summary']['total_cost']:.6f} ({breakdown['comparison']['summary_percentage']:.1f}%) | 📞 {breakdown['summary']['total_calls']} calls", file=sys.stderr)
+            print(f"Summary: ${breakdown['summary']['total_cost']:.6f} ({breakdown['comparison']['summary_percentage']:.1f}%) | {breakdown['summary']['total_calls']} calls", file=sys.stderr)
 
 def initialize_cost_tracking():
     """Initialize cost tracking for the workflow."""
@@ -387,61 +387,61 @@ def finalize_cost_tracking():
     # Also save a human-readable summary to a file for artifacts
     try:
         with open('/tmp/ai_cost_summary.txt', 'w') as f:
-            f.write("🤖 AI USAGE COST SUMMARY\n")
+            f.write("AI USAGE COST SUMMARY\n")
             f.write("="*80 + "\n\n")
-            f.write(f"💰 Total Cost: ${summary['total_cost']:.6f}\n")
-            f.write(f"📞 Total API Calls: {summary['total_calls']}\n")
-            f.write(f"📥 Total Input Tokens: {summary['total_input_tokens']:,}\n")
-            f.write(f"📤 Total Output Tokens: {summary['total_output_tokens']:,}\n\n")
+            f.write(f"Total Cost: ${summary['total_cost']:.6f}\n")
+            f.write(f"Total API Calls: {summary['total_calls']}\n")
+            f.write(f"Total Input Tokens: {summary['total_input_tokens']:,}\n")
+            f.write(f"Total Output Tokens: {summary['total_output_tokens']:,}\n\n")
             
-            f.write("🔍 REVIEW vs SUMMARY BREAKDOWN:\n")
+            f.write("REVIEW vs SUMMARY BREAKDOWN:\n")
             f.write("-" * 50 + "\n")
-            f.write(f"🔍 Review Operations:\n")
-            f.write(f"   💰 Cost: ${breakdown['review']['total_cost']:.6f} ({breakdown['comparison']['review_percentage']:.1f}%)\n")
-            f.write(f"   📞 Calls: {breakdown['review']['total_calls']}\n")
-            f.write(f"   📥 Input: {breakdown['review']['total_input_tokens']:,} tokens\n")
-            f.write(f"   📤 Output: {breakdown['review']['total_output_tokens']:,} tokens\n\n")
+            f.write(f"Review Operations:\n")
+            f.write(f"   Cost: ${breakdown['review']['total_cost']:.6f} ({breakdown['comparison']['review_percentage']:.1f}%)\n")
+            f.write(f"   Calls: {breakdown['review']['total_calls']}\n")
+            f.write(f"   Input: {breakdown['review']['total_input_tokens']:,} tokens\n")
+            f.write(f"   Output: {breakdown['review']['total_output_tokens']:,} tokens\n\n")
             
-            f.write(f"📝 Summary Operations:\n")
-            f.write(f"   💰 Cost: ${breakdown['summary']['total_cost']:.6f} ({breakdown['comparison']['summary_percentage']:.1f}%)\n")
-            f.write(f"   📞 Calls: {breakdown['summary']['total_calls']}\n")
-            f.write(f"   📥 Input: {breakdown['summary']['total_input_tokens']:,} tokens\n")
-            f.write(f"   📤 Output: {breakdown['summary']['total_output_tokens']:,} tokens\n\n")
+            f.write(f"Summary Operations:\n")
+            f.write(f"   Cost: ${breakdown['summary']['total_cost']:.6f} ({breakdown['comparison']['summary_percentage']:.1f}%)\n")
+            f.write(f"   Calls: {breakdown['summary']['total_calls']}\n")
+            f.write(f"   Input: {breakdown['summary']['total_input_tokens']:,} tokens\n")
+            f.write(f"   Output: {breakdown['summary']['total_output_tokens']:,} tokens\n\n")
             
-            f.write("🤖 COST BY MODEL:\n")
+            f.write("COST BY MODEL:\n")
             f.write("-" * 50 + "\n")
             for model, data in summary['by_model'].items():
                 percentage = (data['cost']/summary['total_cost']*100 if summary['total_cost'] > 0 else 0)
-                f.write(f"🤖 {model}:\n")
-                f.write(f"   💰 Cost: ${data['cost']:.6f} ({percentage:.1f}%)\n")
-                f.write(f"   📞 Calls: {data['calls']}\n")
-                f.write(f"   📥 Input: {data['input_tokens']:,} tokens\n")
-                f.write(f"   📤 Output: {data['output_tokens']:,} tokens\n\n")
+                f.write(f"{model}:\n")
+                f.write(f"   Cost: ${data['cost']:.6f} ({percentage:.1f}%)\n")
+                f.write(f"   Calls: {data['calls']}\n")
+                f.write(f"   Input: {data['input_tokens']:,} tokens\n")
+                f.write(f"   Output: {data['output_tokens']:,} tokens\n\n")
             
-            f.write("📋 COST BY OPERATION TYPE:\n")
+            f.write("COST BY OPERATION TYPE:\n")
             f.write("-" * 50 + "\n")
             for op_type, data in summary['by_type'].items():
                 percentage = (data['cost']/summary['total_cost']*100 if summary['total_cost'] > 0 else 0)
-                f.write(f"📌 {op_type.upper()}:\n")
-                f.write(f"   💰 Cost: ${data['cost']:.6f} ({percentage:.1f}%)\n")
-                f.write(f"   📞 Calls: {data['calls']}\n")
-                f.write(f"   📥 Input: {data['input_tokens']:,} tokens\n")
-                f.write(f"   📤 Output: {data['output_tokens']:,} tokens\n")
+                f.write(f"{op_type.upper()}:\n")
+                f.write(f"   Cost: ${data['cost']:.6f} ({percentage:.1f}%)\n")
+                f.write(f"   Calls: {data['calls']}\n")
+                f.write(f"   Input: {data['input_tokens']:,} tokens\n")
+                f.write(f"   Output: {data['output_tokens']:,} tokens\n")
                 if data['calls'] > 0:
                     avg_cost_per_call = data['cost'] / data['calls']
-                    f.write(f"   📊 Avg Cost/Call: ${avg_cost_per_call:.6f}\n")
+                    f.write(f"   Avg Cost/Call: ${avg_cost_per_call:.6f}\n")
                 f.write("\n")
             
             if summary['individual_calls']:
-                f.write("📜 INDIVIDUAL CALLS:\n")
+                f.write("INDIVIDUAL CALLS:\n")
                 f.write("-" * 50 + "\n")
                 for i, call in enumerate(summary['individual_calls'], 1):
                     timestamp = call.get('timestamp', 'Unknown')
                     f.write(f"{i:2d}. {call['call_type'].upper()} - {call['model']}\n")
-                    f.write(f"    📥 {call['input_tokens']:,} in, 📤 {call['output_tokens']:,} out | 💰 ${call['cost']:.6f}\n")
-                    f.write(f"    ⏰ {timestamp}\n")
+                    f.write(f"    {call['input_tokens']:,} in, {call['output_tokens']:,} out | ${call['cost']:.6f}\n")
+                    f.write(f"    {timestamp}\n")
                     if call.get('context'):
-                        f.write(f"    📝 {call['context']}\n")
+                        f.write(f"    {call['context']}\n")
                     f.write("\n")
     except Exception as e:
         print(f"Warning: Could not save human-readable summary: {e}", file=sys.stderr)
@@ -464,24 +464,27 @@ if __name__ == "__main__":
         cost_file = '/tmp/ai_costs.json'
         if os.path.exists(cost_file):
             os.remove(cost_file)
-            print("🔄 Cost tracking data reset", file=sys.stderr)
+            print("Cost tracking data reset", file=sys.stderr)
         else:
-            print("ℹ️  No cost data to reset", file=sys.stderr)
+            print("No cost data to reset", file=sys.stderr)
     elif args.quick:
         tracker.print_quick_summary()
     elif args.breakdown:
         breakdown = tracker.get_review_summary_breakdown()
-        print(f"\n🔍 REVIEW vs SUMMARY COST BREAKDOWN:", file=sys.stderr)
+        summary = tracker.get_summary()
+        print(f"\nREVIEW vs SUMMARY COST BREAKDOWN:", file=sys.stderr)
         print("="*60, file=sys.stderr)
-        print(f"🔍 Review Operations: ${breakdown['review']['total_cost']:.6f} ({breakdown['comparison']['review_percentage']:.1f}%)", file=sys.stderr)
-        print(f"📝 Summary Operations: ${breakdown['summary']['total_cost']:.6f} ({breakdown['comparison']['summary_percentage']:.1f}%)", file=sys.stderr)
+        print(f"TOTAL COST: ${summary['total_cost']:.6f}", file=sys.stderr)
+        print("-" * 60, file=sys.stderr)
+        print(f"Review Operations: ${breakdown['review']['total_cost']:.6f} ({breakdown['comparison']['review_percentage']:.1f}%)", file=sys.stderr)
+        print(f"Summary Operations: ${breakdown['summary']['total_cost']:.6f} ({breakdown['comparison']['summary_percentage']:.1f}%)", file=sys.stderr)
         
         if breakdown['comparison']['cost_ratio'] != float('inf'):
-            print(f"📊 Review/Summary Cost Ratio: {breakdown['comparison']['cost_ratio']:.2f}x", file=sys.stderr)
+            print(f"Review/Summary Cost Ratio: {breakdown['comparison']['cost_ratio']:.2f}x", file=sys.stderr)
         
         if breakdown['comparison']['efficiency_comparison']['review_cost_per_token'] > 0:
-            print(f"⚡ Review Cost per Token: ${breakdown['comparison']['efficiency_comparison']['review_cost_per_token']*1000000:.2f}/MTok", file=sys.stderr)
+            print(f"Review Cost per Token: ${breakdown['comparison']['efficiency_comparison']['review_cost_per_token']*1000000:.2f}/MTok", file=sys.stderr)
         if breakdown['comparison']['efficiency_comparison']['summary_cost_per_token'] > 0:
-            print(f"⚡ Summary Cost per Token: ${breakdown['comparison']['efficiency_comparison']['summary_cost_per_token']*1000000:.2f}/MTok", file=sys.stderr)
+            print(f"Summary Cost per Token: ${breakdown['comparison']['efficiency_comparison']['summary_cost_per_token']*1000000:.2f}/MTok", file=sys.stderr)
     else:
         tracker.print_detailed_summary()

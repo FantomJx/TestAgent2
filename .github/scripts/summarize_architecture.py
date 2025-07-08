@@ -185,7 +185,7 @@ def main():
 
         # Use comprehensive codebase analysis (prompt1) for new projects with no existing summary
         # or use architecture update (prompt) for projects with existing summaries and recent changes
-        if not old_summary_text and len(codebase_content) < 5000:  # New project, analyze full codebase
+        if not old_summary_text:  # New project, analyze full codebase
             active_prompt = prompt1
             print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
         else:  # Existing project, update summary with recent changes
