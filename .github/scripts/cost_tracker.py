@@ -13,9 +13,9 @@ class CostTracker:
             'input': 3.00,   # $3/MTok
             'output': 15.00  # $15/MTok
         },
-        'o3-mini': {
-            'input': 1.10,   # $1.10/MTok  
-            'output': 4.40   # $4.40/MTok
+        'gpt-4.1-nano-2025-04-14': {
+            'input': 0.10,   # $1.10/MTok  
+            'output': 0.40   # $4.40/MTok
         }
     }
     
