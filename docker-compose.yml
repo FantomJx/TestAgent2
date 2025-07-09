@@ -20,7 +20,7 @@ services:
       - BASE_SHA=${BASE_SHA}
       
       # Git diff data (base64 encoded)
-      - DIFF_B64=${DIFF_B64}
+      - DIFF_B64=${DIFF_B64:-}
       
       # Configuration
       - LINE_THRESHOLD=200
