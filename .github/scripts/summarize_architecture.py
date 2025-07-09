@@ -266,7 +266,7 @@ def main():
 
 
 
-        if not old_summary_text and len(codebase_content) < 500000:
+        if not old_summary_text and len(codebase_content) < 5000000:
             active_prompt = prompt1
             print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
         elif old_summary_text and changes_text:
