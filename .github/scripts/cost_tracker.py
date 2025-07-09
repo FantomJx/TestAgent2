@@ -170,10 +170,10 @@ class CostTracker:
         # Overall summary box
         print("\nOVERALL STATISTICS", file=sys.stderr)
         print("┌─────────────────────┬─────────────────────────────────────────────────────┐", file=sys.stderr)
-        print(f"│ Total Cost          │ ${summary['total_cost']:>11.6f}                                   │", file=sys.stderr)
-        print(f"│ Total API Calls     │ {summary['total_calls']:>11,}                                   │", file=sys.stderr)
-        print(f"│ Total Input Tokens  │ {summary['total_input_tokens']:>11,}                                   │", file=sys.stderr)
-        print(f"│ Total Output Tokens │ {summary['total_output_tokens']:>11,}                                   │", file=sys.stderr)
+        print(f"│ Total Cost          │ ${summary['total_cost']:>53.6f} │", file=sys.stderr)
+        print(f"│ Total API Calls     │ {summary['total_calls']:>53,} │", file=sys.stderr)
+        print(f"│ Total Input Tokens  │ {summary['total_input_tokens']:>53,} │", file=sys.stderr)
+        print(f"│ Total Output Tokens │ {summary['total_output_tokens']:>53,} │", file=sys.stderr)
         print("└─────────────────────┴─────────────────────────────────────────────────────┘", file=sys.stderr)
         
         # Cost by model table
@@ -216,8 +216,8 @@ class CostTracker:
                 
                 # Add context row if present
                 if call.get('context'):
-                    context_text = call['context'][:75] + "..." if len(call['context']) > 75 else call['context']
-                    print(f"│    │ Context: {context_text:<68} │", file=sys.stderr)
+                    context_text = call['context'][:91] + "..." if len(call['context']) > 91 else call['context']
+                    print(f"│    │ Context: {context_text:<91} │", file=sys.stderr)
             
             print("└────┴──────────────┴─────────────────────────┴─────────────┴──────────────┴─────────────┘", file=sys.stderr)
         
