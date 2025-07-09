@@ -52,11 +52,6 @@ def main():
             print(f"Architecture summary updated with changes_count: {changes_count}", file=sys.stderr)
         else:
             print("No existing summary found, creating new one", file=sys.stderr)
-            firebase_client.update_architecture_summary(
-                repository=repository,
-                summary="Initial architecture summary",
-                changes_count=1
-            )
         
         # Write outputs to GitHub Actions output file
         if 'GITHUB_OUTPUT' in os.environ:
