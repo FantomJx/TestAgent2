@@ -167,6 +167,8 @@ def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
         '-d', '@/tmp/openai_payload.json'
     ], capture_output=True, text=True)
 
+    print(result.stdout, file=sys.stderr)
+
     if result.returncode != 0:
         print(f'OpenAI API call failed: {result.stderr}', file=sys.stderr)
         return '[]'
