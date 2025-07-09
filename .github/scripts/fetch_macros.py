@@ -49,6 +49,8 @@ def fetch_macros():
         
         macros_data = doc.to_dict()
         print("Successfully fetched macros from Firestore:")
+        print("Raw Firestore data:")
+        print(json.dumps(macros_data, indent=2))
         
         # Define expected macro keys with defaults
         expected_macros = {
@@ -61,7 +63,7 @@ def fetch_macros():
         # Extract values and set GitHub outputs
         for key, default_value in expected_macros.items():
             value = macros_data.get(key, default_value)
-            print(f"  {key}={value}")
+            print(f"  Key: '{key}' - Firestore value: {repr(macros_data.get(key))} - Final value: {value}")
             
             # Set GitHub Actions output
             with open(os.environ.get('GITHUB_OUTPUT', '/dev/stdout'), 'a') as f:
