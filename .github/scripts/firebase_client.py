@@ -6,9 +6,8 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 import base64
 import logging
+from fetch_macros import initialize_firebase, fetch_macros
 
-# Configuration constants
-CHANGES_THRESHOLD = 5
 # Configuration - Firebase service account file
 FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent-21ba8-firebase-adminsdk-fbsvc-9238683630.json"
 
@@ -130,8 +129,8 @@ class FirebaseClient:
     def should_summarize(self, repository, changes_threshold=None):
         """Determine if we should regenerate the architecture summary"""
         if changes_threshold is None:
-            # Get from environment variable or use default constant
-            changes_threshold = int(os.environ.get('CHANGES_THRESHOLD', CHANGES_THRESHOLD))
+            # Get from Firebase macros or environment variable
+            changes_threshold = self.get_changes_threshold()
             
         try:
             doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
@@ -149,3 +148,26 @@ class FirebaseClient:
         except Exception as e:
             logging.error(f"Error checking should_summarize: {str(e)}")
             return False
+    
+    def get_changes_threshold(self):
+        """Get the changes threshold from Firebase macros or environment variable"""
+        try:
+            # First try to get from Firebase using the imported fetch_macros function
+            macros = fetch_macros()
+            
+            if macros and 'CHANGES_THRESHOLD' in macros:
+                threshold = macros['CHANGES_THRESHOLD']
+                return int(threshold)
+            
+            # Fallback to environment variable
+            env_threshold = os.environ.get('CHANGES_THRESHOLD')
+            if env_threshold is not None:
+                return int(env_threshold)
+            
+            # Default fallback
+            print("No CHANGES_THRESHOLD found in Firebase or environment, using default: 5", file=sys.stderr)
+            return 5
+            
+        except (ValueError, TypeError) as e:
+            logging.error(f"Error parsing CHANGES_THRESHOLD: {str(e)}")
+            return 5
