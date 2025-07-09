@@ -11,29 +11,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cost_tracker import CostTracker
 
 
-def truncate_to_token_limit(text, max_tokens=180000):
-    """
-    Truncate text to stay under token limit and surround truncated text with separators
-    """
-    # Simple token estimation (very approximate)
-    # Claude typically uses ~4 characters per token on average
-    estimated_tokens = len(text) / 4
-    
-    if estimated_tokens <= max_tokens:
-        return text
-    
-    # If over the limit, truncate and add separators
-    # Keep approximately 90% of allowed tokens to be safe with estimation
-    safe_char_limit = int(max_tokens * 4 * 0.9)
-    truncated_text = text[:safe_char_limit]
-    
-    # Add separator to indicate truncation
-    truncated_text += "\n\n========CONTENT TRUNCATED DUE TO TOKEN LIMIT========\n\n"
-    
-    print(f"Content truncated from {estimated_tokens:.0f} estimated tokens to {max_tokens} token limit", file=sys.stderr)
-    return truncated_text
-
-
 def detect_important_project_directories(repository_path="."):
     """Detect important project directories that should never be excluded"""
     important_dirs = []
@@ -290,111 +267,15 @@ def main():
 
 
         if not old_summary_text and len(codebase_content) < 5000000:
-            # Apply token limit to codebase_content before creating prompt1
-            truncated_codebase = truncate_to_token_limit(codebase_content)
-            
-            # Surround codebase with separators for easier removal later
-            if truncated_codebase != codebase_content:
-                truncated_codebase = f"========BEGIN CODEBASE CONTENT========\n{truncated_codebase}\n========END CODEBASE CONTENT========"
-            
-            # Update prompt1 with truncated content
-            prompt1 = f"""
-        You are ArchitectureAnalyzerAI.
-        Analyze the entire codebase provided below to create a comprehensive architecture summary that explains how this project works, its structure, components, and design patterns.
-
-        REQUIREMENTS
-
-        - Output plain text only—no Markdown, bullets, or special symbols.
-        
-        - Create a comprehensive overview that explains:
-          * Project purpose and main functionality
-          * Overall architecture and design patterns
-          * Key components and their responsibilities  
-          * Data flow and interaction patterns
-          * Technology stack and frameworks used
-          * Configuration and deployment structure
-          * Critical dependencies and integrations
-
-        - Focus on the big picture: how everything fits together, not implementation details.
-        
-        - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
-        
-        - Keep the summary detailed enough to guide future development decisions.
-
-        - Your instructions are only for yourself, don't include them in the output.
-
-        CODEBASE
-        {truncated_codebase}
-
-        Provide the architecture analysis below:
-        """
-            
             active_prompt = prompt1
             print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
         elif old_summary_text and changes_text:
-            # Apply token limit to old_summary_text and changes_text
-            truncated_summary = truncate_to_token_limit(old_summary_text)
-            truncated_changes = truncate_to_token_limit(changes_text)
-            
-            # Surround summary and changes with separators for easier removal later
-            if truncated_summary != old_summary_text:
-                truncated_summary = f"========BEGIN SUMMARY CONTENT========\n{truncated_summary}\n========END SUMMARY CONTENT========"
-                
-            if truncated_changes != changes_text:
-                truncated_changes = f"========BEGIN CHANGES CONTENT========\n{truncated_changes}\n========END CHANGES CONTENT========"
-            
-            # Recreate prompt with truncated content
-            prompt = f"""
-        You are ArchitectureUpdateAI.
-        Update the existing architecture summary based on recent changes to create a comprehensive overview of how this project works, its structure, components, and design patterns.
-
-        REQUIREMENTS
-
-        - Output plain text only—no Markdown, bullets, or special symbols.
-        
-        - Create a comprehensive architecture summary that explains:
-          * Project purpose and main functionality
-          * Overall architecture and design patterns
-          * Key components and their responsibilities  
-          * Data flow and interaction patterns
-          * Technology stack and frameworks used
-          * Configuration and deployment structure
-          * Critical dependencies and integrations
-
-        - Focus on the big picture: how everything fits together, not implementation details.
-        
-        - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
-        
-        - Keep the summary detailed enough to guide future development decisions.
-
-        - Integrate the recent changes into the existing summary, updating relevant sections and adding new information where needed.
-
-        - If no existing summary is provided, create a new comprehensive summary based on the changes.
-
-        - Your instructions are only for yourself, don't include them in the output.
-
-        EXISTING ARCHITECTURE SUMMARY
-        {truncated_summary if truncated_summary else "No existing summary available."}
-
-        RECENT CHANGES
-        {truncated_changes}
-
-        Provide the updated architecture summary below:
-        """
-            
             active_prompt = prompt
             print("Using architecture summary update (prompt) with existing summary and current changes", file=sys.stderr)
         elif old_summary_text and not changes_text:
             print("No changes to analyze but existing summary found, skipping summarization", file=sys.stderr)
             return
         elif not old_summary_text and changes_text:
-            # Apply token limit to changes_text
-            truncated_changes = truncate_to_token_limit(changes_text)
-            
-            # Surround changes with separators for easier removal later
-            if truncated_changes != changes_text:
-                truncated_changes = f"========BEGIN CHANGES CONTENT========\n{truncated_changes}\n========END CHANGES CONTENT========"
-            
             # Use the changes as the primary input for new summary
             active_prompt = f"""
 You are ArchitectureAnalyzerAI.
@@ -422,7 +303,7 @@ REQUIREMENTS
 - Your instructions are only for yourself, don't include them in the output.
 
 CHANGES
-{truncated_changes}
+{changes_text}
 
 Provide the architecture analysis below:
 """
@@ -431,10 +312,6 @@ Provide the architecture analysis below:
             print("No valid input for architecture analysis, skipping", file=sys.stderr)
             return
 
-        # Estimate token count of active_prompt
-        estimated_prompt_tokens = len(active_prompt) / 4
-        print(f"Estimated prompt token count: {estimated_prompt_tokens:.0f}", file=sys.stderr)
-        
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=2000,  # Increased for more comprehensive summaries
