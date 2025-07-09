@@ -74,9 +74,9 @@ def create_openai_payload(model: str, prompt: str) -> Dict[str, Any]:
             }
         ]
     }
-    
+
     if model == "o3-mini":
-        payload["max_tokens"] = 4000
+        payload["max_completion_tokens"] = 4000
     else:
         payload["max_tokens"] = 10000
 
