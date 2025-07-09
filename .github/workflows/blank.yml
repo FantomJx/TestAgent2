@@ -9,7 +9,7 @@ on:
 jobs:
   claude-review:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 1
     permissions:
       pull-requests: write
       contents: read
@@ -252,6 +252,8 @@ jobs:
           LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
           ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
         run: |
+          echo "Starting AI review with 2-minute delay to test timeout..."
+          sleep 120
           python3 .github/scripts/ai_review.py 2>/tmp/ai_review_debug.log
 
       - name: Display AI costs so far
