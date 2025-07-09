@@ -3,6 +3,7 @@ version: '3.8'
 services:
   testagent:
     build: .
+    working_dir: /app
     environment:
       # Required API Keys
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
