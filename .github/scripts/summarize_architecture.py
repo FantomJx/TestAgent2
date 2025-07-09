@@ -11,6 +11,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cost_tracker import CostTracker
 
 
+def detect_important_project_directories(repository_path="."):
+    """Detect important project directories that should never be excluded"""
+    important_dirs = []
+    common_code_dirs = ['src', 'lib', 'app', 'core', 'modules', 'packages', 'components']
+    
+    for dir_name in common_code_dirs:
+        if os.path.isdir(os.path.join(repository_path, dir_name)):
+            important_dirs.append(f'/{dir_name}/')
+            print(f"Detected important project directory: {dir_name}", file=sys.stderr)
+            
+    return important_dirs
+
+
 def get_codebase_content(repository_path="."):
     """Collect all relevant source code files from the repository"""
     code_content = ""
@@ -32,10 +45,35 @@ def get_codebase_content(repository_path="."):
         '.log', '.tmp', '.temp', '.cache'
     }
     
+    # Detect important directories that should never be excluded
+    important_dirs = detect_important_project_directories(repository_path)
+    
+    # Remove any important directories from exclude patterns if they exist
+    for important_dir in important_dirs:
+        if important_dir in exclude_patterns:
+            exclude_patterns.remove(important_dir)
+            print(f"Removed {important_dir} from exclusion patterns", file=sys.stderr)
+    
     try:
+        print(f"Scanning repository at {repository_path} for code files...", file=sys.stderr)
+        print(f"Important directories will be included: {important_dirs}", file=sys.stderr)
+        
         for root, dirs, files in os.walk(repository_path):
             # Skip excluded directories
+            before_count = len(dirs)
             dirs[:] = [d for d in dirs if not any(pattern.strip('/') in d for pattern in exclude_patterns)]
+            after_count = len(dirs)
+            
+            if before_count != after_count:
+                skipped = before_count - after_count
+                print(f"Skipped {skipped} excluded directories in {root}", file=sys.stderr)
+            
+            # Special handling: don't skip important directories
+            for important_dir in important_dirs:
+                dir_name = important_dir.strip('/')
+                if dir_name in root and not any(dir_name == d for d in dirs):
+                    print(f"Ensuring important directory is not excluded: {dir_name} in {root}", file=sys.stderr)
+                    dirs.append(dir_name)
             
             for file in files:
                 file_path = os.path.join(root, file)
@@ -62,8 +100,45 @@ def get_codebase_content(repository_path="."):
                     
     except Exception as e:
         print(f"Error collecting codebase: {e}", file=sys.stderr)
-        
+    
+    # Generate summary statistics for important directories
+    important_dir_stats = {}
+    for important_dir in important_dirs:
+        dir_name = important_dir.strip('/')
+        dir_path = os.path.join(repository_path, dir_name)
+        if os.path.exists(dir_path):
+            file_count = sum(1 for _ in glob.glob(f"{dir_path}/**/*", recursive=True) if os.path.isfile(_))
+            important_dir_stats[dir_name] = file_count
+    
+    if important_dir_stats:
+        print("Files collected from important directories:", file=sys.stderr)
+        for dir_name, count in important_dir_stats.items():
+            print(f"- {dir_name}: {count} files", file=sys.stderr)
+            
     return code_content
+
+def check_project_structure():
+    """Check the project structure and identify important directories"""
+    common_project_structures = {
+        'react': ['src', 'public', 'components'],
+        'node': ['lib', 'src', 'test'],
+        'python': ['src', 'tests', 'docs'],
+        'django': ['apps', 'templates', 'static'],
+        'rails': ['app', 'config', 'db'],
+        'java': ['src/main/java', 'src/main/resources', 'src/test'],
+        'go': ['cmd', 'pkg', 'internal'],
+    }
+    
+    detected_structures = []
+    structure_info = ""
+    
+    for tech, dirs in common_project_structures.items():
+        matching_dirs = [d for d in dirs if os.path.isdir(d)]
+        if matching_dirs:
+            detected_structures.append((tech, matching_dirs))
+            structure_info += f"- Detected {tech}-like structure with directories: {', '.join(matching_dirs)}\n"
+    
+    return detected_structures, structure_info
 
 def main():
     try:
@@ -72,6 +147,13 @@ def main():
         repository = os.environ['REPOSITORY']
         
         print(f"Summarizing architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
+        
+        # Check project structure
+        detected_structures, structure_info = check_project_structure()
+        if detected_structures:
+            print(f"Project structure analysis:\n{structure_info}", file=sys.stderr)
+        else:
+            print("No standard project structure detected", file=sys.stderr)
         
         # Get the current diff from environment variable
         diff_b64 = os.environ.get('DIFF_B64', '')
@@ -98,8 +180,15 @@ def main():
         # Collect the entire codebase for comprehensive architecture analysis (only for new projects)
         codebase_content = ""
         if not old_summary_text:
+            # Prepare metadata about project structure
+            detected_dirs = [dir_name for structure, dirs in detected_structures for dir_name in dirs]
+            project_structure_info = f"Project structure analysis detected these important directories: {', '.join(detected_dirs)}" if detected_dirs else "No standard project structure detected"
+            
             codebase_content = get_codebase_content(".")
             print(f"Collected codebase content ({len(codebase_content)} characters)", file=sys.stderr)
+            
+            # Add project structure information at the beginning of the codebase content
+            codebase_content = f"PROJECT STRUCTURE METADATA:\n{project_structure_info}\n\n{codebase_content}"
 
         client = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
 
