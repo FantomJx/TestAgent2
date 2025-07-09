@@ -64,8 +64,28 @@ class FirebaseClient:
                 'last_updated': datetime.utcnow(),
                 'changes_count': changes_count
             }
-            doc_ref.set(data, merge=True)
+            
+            # Debug: Print what we're about to save
+            print(f"Updating Firebase with summary length: {len(summary) if summary else 0}", file=sys.stderr)
+            print(f"Summary data preview: {summary[:100] if summary else 'None'}...", file=sys.stderr)
+            print(f"Changes count: {changes_count}", file=sys.stderr)
+            
+            # Use set() without merge to completely replace the document
+            doc_ref.set(data)
             print(f"Successfully updated architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
+            
+            # Verify the update by reading back the document
+            try:
+                updated_doc = doc_ref.get()
+                if updated_doc.exists:
+                    updated_data = updated_doc.to_dict()
+                    saved_summary = updated_data.get('summary', '')
+                    print(f"Verification: Saved summary length: {len(saved_summary)}", file=sys.stderr)
+                    print(f"Verification: Summary preview: {saved_summary[:100]}...", file=sys.stderr)
+                else:
+                    print("ERROR: Document not found after update!", file=sys.stderr)
+            except Exception as verify_e:
+                print(f"Warning: Could not verify update: {verify_e}", file=sys.stderr)
         except Exception as e:
             logging.error(f"Error updating architecture summary: {str(e)}")
             raise

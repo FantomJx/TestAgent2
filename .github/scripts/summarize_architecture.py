@@ -252,6 +252,16 @@ Provide the architecture analysis below:
         
         architecture_summary = response.content[0].text
         
+        # Debug: Print the summary being sent to Firebase
+        print(f"Generated summary length: {len(architecture_summary)}", file=sys.stderr)
+        print(f"Summary preview: {architecture_summary[:200]}...", file=sys.stderr)
+        
+        # Safety check
+        if not architecture_summary or len(architecture_summary.strip()) == 0:
+            print("ERROR: Generated summary is empty!", file=sys.stderr)
+            print(f"Full response: {response}", file=sys.stderr)
+            exit(1)
+        
         # Update the architecture summary in Firebase
         firebase_client.update_architecture_summary(
             repository=repository,
