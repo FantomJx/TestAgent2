@@ -49,8 +49,6 @@ def fetch_macros():
         
         macros_data = doc.to_dict()
         print("Successfully fetched macros from Firestore:")
-        print("Raw Firestore data:")
-        print(json.dumps(macros_data, indent=2))
         
         # Define expected macro keys with defaults
         expected_macros = {
