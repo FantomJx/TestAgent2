@@ -167,7 +167,8 @@ def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
         '-d', '@/tmp/openai_payload.json'
     ], capture_output=True, text=True)
 
-    print(result.stdout, file=sys.stderr)
+    # get whole raw response (not status, the response itself)
+    print(f"OpenAI API raw response: {result.stdout}", file=sys.stderr)
 
     if result.returncode != 0:
         print(f'OpenAI API call failed: {result.stderr}', file=sys.stderr)
@@ -371,11 +372,6 @@ if __name__ == "__main__":
 
     # Get review
     review = get_ai_review(selected_model, diff)
-    
-    # Print the AI review output
-    print("\n=== AI Review Output ===")
-    print(review)
-    print("=== End of AI Review ===\n")
 
     # Output base64 encoded review and model info
     review_b64 = base64.b64encode(review.encode('utf-8')).decode('utf-8')
