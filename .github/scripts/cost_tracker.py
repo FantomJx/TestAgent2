@@ -216,8 +216,8 @@ class CostTracker:
                 
                 # Add context row if present
                 if call.get('context'):
-                    context_text = call['context'][:91] + "..." if len(call['context']) > 91 else call['context']
-                    print(f"│    │ Context: {context_text:<91} │", file=sys.stderr)
+                    context_text = call['context'][:59] + "..." if len(call['context']) > 59 else call['context']
+                    print(f"│    │ Context: {context_text:<59} │", file=sys.stderr)
             
             print("└────┴──────────────┴─────────────────────────┴─────────────┴──────────────┴─────────────┘", file=sys.stderr)
         
