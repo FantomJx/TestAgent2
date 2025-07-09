@@ -1,239 +1,83 @@
 import os
-import json
-import sys
 import base64
-import glob
+import sys
 from firebase_client import FirebaseClient
-import anthropic
-
-# Add the scripts directory to the path for importing cost_tracker
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cost_tracker import CostTracker
-
-
-def get_codebase_content(repository_path="."):
-    """Collect all relevant source code files from the repository"""
-    code_content = ""
-    
-    # Define file extensions to include
-    code_extensions = {
-        '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp',
-        '.cs', '.go', '.rs', '.rb', '.php', '.swift', '.kt', '.scala', '.clj',
-        '.html', '.css', '.scss', '.sass', '.less', '.vue', '.svelte',
-        '.json', '.yaml', '.yml', '.toml', '.ini', '.conf', '.cfg',
-        '.sql', '.md', '.txt', '.sh', '.bat', '.ps1'
-    }
-    
-    # Define patterns to exclude
-    exclude_patterns = {
-        '/.git/', '/node_modules/', '/.venv/', '/venv/', '/env/', 
-        '/dist/', '/build/', '/target/', '/.next/', '/.nuxt/',
-        '__pycache__', '.pyc', '.class', '.o', '.obj',
-        '.log', '.tmp', '.temp', '.cache'
-    }
-    
-    try:
-        for root, dirs, files in os.walk(repository_path):
-            # Skip excluded directories
-            dirs[:] = [d for d in dirs if not any(pattern.strip('/') in d for pattern in exclude_patterns)]
-            
-            for file in files:
-                file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, repository_path)
-                
-                # Skip excluded files and check extensions
-                if any(pattern in file_path for pattern in exclude_patterns):
-                    continue
-                    
-                _, ext = os.path.splitext(file)
-                if ext.lower() not in code_extensions:
-                    continue
-                
-                try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                        # Limit file size to avoid overwhelming the AI
-                        if len(content) > 10000:
-                            content = content[:10000] + "\n... (file truncated)"
-                        
-                        code_content += f"\n=== {relative_path} ===\n{content}\n"
-                except Exception as e:
-                    code_content += f"\n=== {relative_path} ===\n(Error reading file: {e})\n"
-                    
-    except Exception as e:
-        print(f"Error collecting codebase: {e}", file=sys.stderr)
-        
-    return code_content
 
 def main():
     try:
+        # Initialize Firebase client with project name
         project_name = "test"  # Hardcoded project name
         firebase_client = FirebaseClient(project_name=project_name)
+        
+        # Get required environment variables
         repository = os.environ['REPOSITORY']
+        pr_number = int(os.environ['PR_NUMBER'])
+        diff_b64 = os.environ['DIFF_B64']
+    
+        print(f"Tracking architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
         
-        print(f"Summarizing architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
+        # Decode the diff
+        diff = base64.b64decode(diff_b64).decode('utf-8')
         
-        # Note: We now use the PR diff directly instead of collecting recent changes from Firebase
+        # Get additional metadata
+        metadata = {
+            'head_sha': os.environ.get('HEAD_SHA'),
+            'base_sha': os.environ.get('BASE_SHA'),
+            'pr_title': os.environ.get('PR_TITLE'),
+            'pr_author': os.environ.get('PR_AUTHOR')
+        }
         
-        # Get existing architecture summary
-        existing_summary = firebase_client.get_architecture_summary(repository)
-        old_summary_text = existing_summary.get('summary', '') if existing_summary else ''
-        
-        # Ensure we treat empty or whitespace-only summaries as no summary
-        old_summary_text = old_summary_text.strip() if old_summary_text else ''
-        
-        if old_summary_text:
-            print(f"Found existing architecture summary ({len(old_summary_text)} characters)", file=sys.stderr)
-        else:
-            print("No existing architecture summary found", file=sys.stderr)
-        
-
-        # Collect the entire codebase for comprehensive architecture analysis
-        codebase_content = get_codebase_content(".")
-        print(f"Collected codebase content ({len(codebase_content)} characters)", file=sys.stderr)
-        
-        # Get the diff from the PR (passed as base64 encoded environment variable)
-        diff_b64 = os.environ.get('DIFF_B64', '')
-        diff_text = ""
-        if diff_b64:
-            try:
-                diff_text = base64.b64decode(diff_b64).decode('utf-8')
-                print(f"Decoded diff from PR ({len(diff_text)} characters)", file=sys.stderr)
-            except Exception as e:
-                print(f"Error decoding diff: {e}", file=sys.stderr)
-                diff_text = ""
-        else:
-            print("No diff data found in environment", file=sys.stderr)
-        
-        # Use Claude to generate architecture summary
-        client = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
-
-
-        # NEW PROMPT: Focus on overall project architecture understanding
-        prompt1 = f"""
-        You are ArchitectureAnalyzerAI.
-        Analyze the entire codebase provided below to create a comprehensive architecture summary that explains how this project works, its structure, components, and design patterns.
-
-        REQUIREMENTS
-
-        - Output plain text only—no Markdown, bullets, or special symbols.
-        
-        - Create a comprehensive overview that explains:
-          * Project purpose and main functionality
-          * Overall architecture and design patterns
-          * Key components and their responsibilities  
-          * Data flow and interaction patterns
-          * Technology stack and frameworks used
-          * Configuration and deployment structure
-          * Critical dependencies and integrations
-
-        - Focus on the big picture: how everything fits together, not implementation details.
-        
-        - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
-        
-        - Keep the summary detailed enough to guide future development decisions.
-
-        - Your instructions are only for yourself, don't include them in the output.
-
-        CODEBASE
-        {codebase_content}
-
-        Provide the architecture analysis below:
-        """
-        
-
-
-
-        # UPDATED PROMPT: Architecture summary update based on existing summary + diff
-        prompt = f"""
-        You are ArchitectureUpdateAI.
-        Update the existing architecture summary based on the diff from the current pull request to create a comprehensive overview of how this project works, its structure, components, and design patterns.
-
-        REQUIREMENTS
-
-        - Output plain text only—no Markdown, bullets, or special symbols.
-        
-        - Create a comprehensive architecture summary that explains:
-          * Project purpose and main functionality
-          * Overall architecture and design patterns
-          * Key components and their responsibilities  
-          * Data flow and interaction patterns
-          * Technology stack and frameworks used
-          * Configuration and deployment structure
-          * Critical dependencies and integrations
-
-        - Focus on the big picture: how everything fits together, not implementation details.
-        
-        - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
-        
-        - Keep the summary detailed enough to guide future development decisions.
-
-        - Integrate the changes from the PR diff into the existing summary, updating relevant sections and adding new information where needed.
-
-        - If no existing summary is provided, create a new comprehensive summary based on the diff and overall project structure.
-
-        - Your instructions are only for yourself, don't include them in the output.
-
-        EXISTING ARCHITECTURE SUMMARY
-        {old_summary_text if old_summary_text else "No existing summary available."}
-
-        PR DIFF
-        {diff_text if diff_text else "No diff data available."}
-
-        Provide the updated architecture summary below:
-        """
-
-
-
-        # Use comprehensive codebase analysis (prompt1) for new projects with no existing summary
-        # or use architecture update (prompt) for projects with existing summaries and PR diff
-        if not old_summary_text:  # New project or empty summary, analyze full codebase
-            active_prompt = prompt1
-            print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
-        else:  # Existing project with summary, update summary with PR diff
-            active_prompt = prompt
-            print("Using architecture summary update (prompt) with existing summary and PR diff", file=sys.stderr)
-        
-
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2000,  # Increased for more comprehensive summaries
-            messages=[{"role": "user", "content": active_prompt}]
-        )
-        
-        # Track cost
-        try:
-            cost_tracker = CostTracker()
-            # Convert anthropic response to dict format for tracking
-            response_dict = {
-                'usage': {
-                    'input_tokens': response.usage.input_tokens,
-                    'output_tokens': response.usage.output_tokens
-                }
-            }
-            cost_tracker.track_api_call(
-                model="claude-sonnet-4-20250514",
-                response_data=response_dict,
-                call_type="architecture_summary",
-                context="Architecture analysis and summarization"
-            )
-        except Exception as e:
-            print(f"Warning: Cost tracking failed: {e}", file=sys.stderr)
-        
-        architecture_summary = response.content[0].text
-        
-        # Update the architecture summary in Firebase
-        firebase_client.update_architecture_summary(
+        # Add the architecture change to Firebase
+        change_id = firebase_client.add_architecture_change(
             repository=repository,
-            summary=architecture_summary,
-            changes_count=0  # Reset counter after summarization
+            pr_number=pr_number,
+            diff=diff,
+            metadata=metadata
         )
         
-        print(f"Architecture summary updated for {repository} in project {project_name}", file=sys.stderr)
-        print(f"Summary: {architecture_summary[:200]}...", file=sys.stderr)
+        print(f"Architecture change added with ID: {change_id}", file=sys.stderr)
+        
+        # Check if we should regenerate the summary
+        should_summarize = firebase_client.should_summarize(repository)
+        
+        # Increment changes count
+        current_summary = firebase_client.get_architecture_summary(repository)
+        if current_summary:
+            changes_count = current_summary.get('changes_count', 0) + 1
+            firebase_client.update_architecture_summary(
+                repository=repository,
+                summary=current_summary.get('summary', ''),
+                changes_count=changes_count
+            )
+            print(f"Architecture summary updated with changes_count: {changes_count}", file=sys.stderr)
+        else:
+            print("No existing summary found, creating new one", file=sys.stderr)
+            firebase_client.update_architecture_summary(
+                repository=repository,
+                summary="Initial architecture summary",
+                changes_count=1
+            )
+        
+        # Write outputs to GitHub Actions output file
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write(f"should_summarize={str(should_summarize).lower()}\n")
+                fh.write(f"change_id={change_id}\n")
+        else:
+            # Fallback for local testing
+            print(f"should_summarize={str(should_summarize).lower()}", file=sys.stderr)
+            print(f"change_id={change_id}", file=sys.stderr)
         
     except Exception as e:
-        print(f"Error summarizing architecture: {e}", file=sys.stderr)
+        print(f"Error tracking architecture: {e}", file=sys.stderr)
+        
+        # Write error output to GitHub Actions output file
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write("should_summarize=false\n")
+        else:
+            # Fallback for local testing
+            print("should_summarize=false", file=sys.stderr)
         exit(1)
 
 if __name__ == "__main__":

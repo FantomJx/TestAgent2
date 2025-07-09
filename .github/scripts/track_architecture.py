@@ -28,14 +28,14 @@ def main():
         }
         
         # Add the architecture change to Firebase
-        # change_id = firebase_client.add_architecture_change(
-        #     repository=repository,
-        #     pr_number=pr_number,
-        #     diff=diff,
-        #     metadata=metadata
-        # )
+        change_id = firebase_client.add_architecture_change(
+            repository=repository,
+            pr_number=pr_number,
+            diff=diff,
+            metadata=metadata
+        )
         
-        # print(f"Architecture change added with ID: {change_id}", file=sys.stderr)
+        print(f"Architecture change added with ID: {change_id}", file=sys.stderr)
         
         # Check if we should regenerate the summary
         should_summarize = firebase_client.should_summarize(repository)
@@ -57,11 +57,11 @@ def main():
         if 'GITHUB_OUTPUT' in os.environ:
             with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
                 fh.write(f"should_summarize={str(should_summarize).lower()}\n")
-                # fh.write(f"change_id={change_id}\n")
+                fh.write(f"change_id={change_id}\n")
         else:
             # Fallback for local testing
             print(f"should_summarize={str(should_summarize).lower()}", file=sys.stderr)
-            # print(f"change_id={change_id}", file=sys.stderr)
+            print(f"change_id={change_id}", file=sys.stderr)
         
     except Exception as e:
         print(f"Error tracking architecture: {e}", file=sys.stderr)

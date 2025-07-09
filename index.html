@@ -12,7 +12,19 @@
         <div id="gameUI">
             <div id="startScreen" class="screen">
                 <h1>Flappy Bird</h1>
-                <p>Click or press SPACE to flap</p>
+                <p>Click, tap, or press SPACE to flap</p>
+                <div class="controls-info">
+                    <p><strong>Controls:</strong></p>
+                    <p>P - Pause/Resume</p>
+                    <p>M - Toggle Sound</p>
+                </div>
+                <div class="features-info">
+                    <p><strong>Features:</strong></p>
+                    <p>🛡️ Shield Power-up</p>
+                    <p>⏱️ Slow Time Power-up</p>
+                    <p>2️⃣ Double Points Power-up</p>
+                    <p>🏆 Achievements System</p>
+                </div>
                 <button id="startBtn">Start Game</button>
             </div>
             <div id="gameOverScreen" class="screen hidden">
@@ -23,6 +35,15 @@
             </div>
             <div id="gameHUD" class="hidden">
                 <div id="score">0</div>
+                <button id="pauseBtn" class="hud-btn">⏸</button>
+                <button id="soundBtn" class="hud-btn">🔊</button>
+                <div id="difficulty">Level: 1</div>
+                <div id="powerUpStatus"></div>
+            </div>
+            <div id="pauseScreen" class="screen hidden">
+                <h2>Game Paused</h2>
+                <p>Press P or SPACE to continue</p>
+                <button id="resumeBtn">Resume</button>
             </div>
         </div>
     </div>
