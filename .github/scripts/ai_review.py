@@ -74,10 +74,9 @@ def create_openai_payload(model: str, prompt: str) -> Dict[str, Any]:
             }
         ]
     }
-
-    # Use max_completion_tokens for o3-mini, max_tokens for other models
+    
     if model == "o3-mini":
-        payload["max_completion_tokens"] = 10000
+        payload["max_tokens"] = 4000
     else:
         payload["max_tokens"] = 10000
 
@@ -242,6 +241,7 @@ def create_review_prompt(diff: str) -> str:
     3. One problem → one JSON object.  No duplicates.
     4. Keep comments short (<20 words) and specific.
     5. Do not wrap output in Markdown or extra text—*JSON only*.
+    6. Be extremely concise and avoid unnecessary verbosity in output.
 
     DIFF TO REVIEW
     ```diff
