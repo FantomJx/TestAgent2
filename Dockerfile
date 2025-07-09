@@ -26,4 +26,4 @@ RUN useradd -m -u 1001 testagent
 USER testagent
 
 # Default command
-CMD ["python", "scripts/ai_review.py"]
+CMD ["python", ".github/scripts/ai_review.py"]
