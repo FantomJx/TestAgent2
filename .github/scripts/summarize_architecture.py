@@ -11,31 +11,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cost_tracker import CostTracker
 
 
-def filter_github_files_from_diff(diff: str) -> str:
-    """Filter out .github files from the diff content."""
-    lines = diff.split('\n')
-    filtered_lines = []
-    skip_file = False
-
-    for line in lines:
-        if line.startswith('diff --git'):
-            # Check if this is a .github file
-            parts = line.split()
-            if len(parts) >= 4:
-                file_path = parts[3][2:]  # Remove "b/" prefix
-                if file_path.startswith('.github/'):
-                    skip_file = True
-                    print(f"Filtering out .github file from architecture analysis: {file_path}", file=sys.stderr)
-                    continue
-                else:
-                    skip_file = False
-
-        if not skip_file:
-            filtered_lines.append(line)
-
-    return '\n'.join(filtered_lines)
-
-
 def get_codebase_content(repository_path="."):
     """Collect all relevant source code files from the repository"""
     code_content = ""
@@ -103,29 +78,9 @@ def main():
         if diff_b64:
             try:
                 changes_text = base64.b64decode(diff_b64).decode('utf-8')
-                
-                # Filter out .github files from diff (like ai_review does)
-                changes_text = filter_github_files_from_diff(changes_text)
-                
-                # Check if there's any meaningful diff left after filtering
-                if not changes_text.strip() or not any(line.startswith('diff --git') for line in changes_text.split('\n')):
-                    print("No significant files to analyze after filtering .github files", file=sys.stderr)
-                    changes_text = ""
-                else:
-                    # Log diff details like ai_review does
-                    diff_lines = changes_text.count('\n')
-                    diff_length = len(changes_text)
-                    print(f"Diff size: {diff_lines:,} lines, {diff_length:,} characters", file=sys.stderr)
-                    
-                    # Truncate diff if it's too large to avoid API limits (like ai_review)
-                    max_diff_length = 15000  # Larger limit for architecture analysis but still reasonable
-                    if diff_length > max_diff_length:
-                        print(f"WARNING: Diff is very large ({diff_length:,} chars), truncating to {max_diff_length:,} chars", file=sys.stderr)
-                        changes_text = changes_text[:max_diff_length] + "\n... (diff truncated due to size)"
-                    
-                    if changes_text:
-                        print(f"First 200 chars of diff: {changes_text[:200]}...", file=sys.stderr)
-                        
+                print(f"Decoded diff from environment ({len(changes_text)} characters)", file=sys.stderr)
+                if changes_text:
+                    print(f"First 200 chars of diff: {changes_text[:200]}...", file=sys.stderr)
             except Exception as e:
                 print(f"Error decoding diff: {e}", file=sys.stderr)
                 changes_text = ""
@@ -232,9 +187,6 @@ def main():
             print("Using architecture summary update (prompt) with existing summary and current changes", file=sys.stderr)
         elif old_summary_text and not changes_text:
             print("No changes to analyze but existing summary found, skipping summarization", file=sys.stderr)
-            return
-        elif not old_summary_text and not changes_text:
-            print("No existing summary and no changes to analyze, skipping summarization", file=sys.stderr)
             return
         elif not old_summary_text and changes_text:
             # Use the changes as the primary input for new summary
