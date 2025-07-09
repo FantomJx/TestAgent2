@@ -79,8 +79,6 @@ def main():
             try:
                 changes_text = base64.b64decode(diff_b64).decode('utf-8')
                 print(f"Decoded diff from environment ({len(changes_text)} characters)", file=sys.stderr)
-                if changes_text:
-                    print(f"First 200 chars of diff: {changes_text[:200]}...", file=sys.stderr)
             except Exception as e:
                 print(f"Error decoding diff: {e}", file=sys.stderr)
                 changes_text = ""
@@ -224,10 +222,6 @@ Provide the architecture analysis below:
         else:
             print("No valid input for architecture analysis, skipping", file=sys.stderr)
             return
-        
-        print("=========================================================", file=sys.stderr)
-        print(f"Active prompt length: {len(active_prompt)} characters", file=sys.stderr)
-        print(f"Active prompt {active_prompt}", file=sys.stderr)
 
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
