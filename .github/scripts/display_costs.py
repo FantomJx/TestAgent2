@@ -24,23 +24,11 @@ def main():
         
         tracker.print_detailed_summary()
         
-        # Get detailed breakdown for review vs summary
-        breakdown = tracker.get_review_summary_breakdown()
-        
         # Also output costs in a format suitable for workflow step outputs
         print(f"TOTAL_COST=${summary['total_cost']:.6f}")
         print(f"TOTAL_CALLS={summary['total_calls']}")
         print(f"TOTAL_INPUT_TOKENS={summary['total_input_tokens']}")
         print(f"TOTAL_OUTPUT_TOKENS={summary['total_output_tokens']}")
-        print(f"REVIEW_COST=${breakdown['review']['total_cost']:.6f}")
-        print(f"SUMMARY_COST=${breakdown['summary']['total_cost']:.6f}")
-        print(f"REVIEW_CALLS={breakdown['review']['total_calls']}")
-        print(f"SUMMARY_CALLS={breakdown['summary']['total_calls']}")
-        
-        # Print key insights
-        if breakdown['comparison']['review_percentage'] > 0 or breakdown['comparison']['summary_percentage'] > 0:
-            print(f"REVIEW_PERCENTAGE={breakdown['comparison']['review_percentage']:.1f}")
-            print(f"SUMMARY_PERCENTAGE={breakdown['comparison']['summary_percentage']:.1f}")
         
     except Exception as e:
         print(f"Error displaying costs: {e}", file=sys.stderr)
