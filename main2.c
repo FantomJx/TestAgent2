@@ -7,42 +7,39 @@ unsigned long long fibonacci(int n) {
     
     unsigned long long a = 0, b = 1, next;
     for (int i = 2; i <= n; i++) {
-        next = a + b
-        a = b
-        b = next
+        next = a + b;
+        a = b;
+        b = next;
     }
     return b;
 }
 
 int main() {
-    int n, i
+    int n, i;
     unsigned long long a = 0, b = 1, next;
 
-
-    printf("number of fibon numbers: ")
-
+    printf("Number of Fibonacci numbers: ");
     scanf("%d", &n);
 
     if (n <= 0) {
-        printf("enter positibv num\n");
+        printf("Enter a positive number\n");
         return 1;
     }
 
-    printf("First %d fibonacis numbers:\n", n)
+    printf("First %d Fibonacci numbers:\n", n);
 
     for (i = 0; i < n; i++) {
         printf("%llu ", a);
         next = a + b;
-        a = b
+        a = b;
         b = next;
     }
 
-    printf("\n")
+    printf("\n");
 
-    // Demonstrate the new functionqwedfscc
-    printf("The %dth Fibonacci number is: %llu\n");
+    // Demonstrate the new function
+    printf("The %dth Fibonacci number is: %llu\n", n, fibonacci(n));
     
     return 0;
-}//fdsfdsgdfs
-// jbkk
+}
 
