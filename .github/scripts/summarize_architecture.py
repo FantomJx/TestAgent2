@@ -225,6 +225,9 @@ Provide the architecture analysis below:
             print("No valid input for architecture analysis, skipping", file=sys.stderr)
             return
         
+        print("=========================================================", file=sys.stderr)
+        print(f"Active prompt length: {len(active_prompt)} characters", file=sys.stderr)
+        print(f"Active prompt {active_prompt}", file=sys.stderr)
 
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
@@ -251,7 +254,7 @@ Provide the architecture analysis below:
             print(f"Warning: Cost tracking failed: {e}", file=sys.stderr)
         
         architecture_summary = response.content[0].text
-        
+
         # Safety check
         if not architecture_summary or len(architecture_summary.strip()) == 0:
             print("ERROR: Generated summary is empty!", file=sys.stderr)
