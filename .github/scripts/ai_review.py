@@ -23,8 +23,8 @@ def read_architecture_context() -> str:
                 content = f.read()
                 # Limit context to avoid token limits
                 words = content.split()
-                if len(words) > 1500:  # Limit to ~1500 words
-                    content = ' '.join(words[:1500]) + \
+                if len(words) > 2000:  # Limit to ~2000 words
+                    content = ' '.join(words[:2000]) + \
                         "\n... (truncated for brevity)"
                 return content
         except Exception as e:
