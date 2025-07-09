@@ -20,6 +20,9 @@ services:
       - HEAD_SHA=${HEAD_SHA}
       - BASE_SHA=${BASE_SHA}
       
+      # Git diff data (base64 encoded)
+      - DIFF_B64=${DIFF_B64}
+      
       # Configuration
       - LINE_THRESHOLD=200
       - MODEL=${MODEL:-o3-mini}
