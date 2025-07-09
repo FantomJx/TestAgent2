@@ -24,12 +24,6 @@ def main():
         
         tracker.print_detailed_summary()
         
-        # Also output costs in a format suitable for workflow step outputs
-        print(f"TOTAL_COST=${summary['total_cost']:.6f}")
-        print(f"TOTAL_CALLS={summary['total_calls']}")
-        print(f"TOTAL_INPUT_TOKENS={summary['total_input_tokens']}")
-        print(f"TOTAL_OUTPUT_TOKENS={summary['total_output_tokens']}")
-        
     except Exception as e:
         print(f"Error displaying costs: {e}", file=sys.stderr)
         sys.exit(1)
