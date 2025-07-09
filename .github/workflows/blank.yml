@@ -9,7 +9,7 @@ on:
 jobs:
   claude-review:
     runs-on: ubuntu-latest
-    timeout-minutes: 1
+    timeout-minutes: 5
     permissions:
       pull-requests: write
       contents: read
@@ -292,52 +292,3 @@ jobs:
         run: |
           echo "=== FINAL AI COST SUMMARY ==="
           cd .github/scripts && python3 -c "from cost_tracker import finalize_cost_tracking; finalize_cost_tracking()"
-
-      - name: Check for timeout and re-run workflow
-        if: failure() && runner.os == 'Linux'
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          WORKFLOW_ID: ${{ github.workflow }}
-          RUN_ID: ${{ github.run_id }}
-          REF: ${{ github.head_ref }}
-        run: |
-          # Check if this run failed due to timeout by examining the run details
-          echo "Checking if workflow failed due to timeout..."
-          
-          # Get workflow run details to check conclusion
-          RUN_DETAILS=$(curl -s \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID")
-          
-          CONCLUSION=$(echo "$RUN_DETAILS" | jq -r '.conclusion // empty')
-          
-          echo "Run conclusion: $CONCLUSION"
-          
-          # Only re-run if the conclusion indicates a timeout (null conclusion with cancelled status usually indicates timeout)
-          # Also check if we're within reasonable time bounds (close to our 5-minute timeout)
-          CURRENT_TIME=$(date +%s)
-          START_TIME=$(echo "$RUN_DETAILS" | jq -r '.created_at' | xargs -I {} date -d {} +%s)
-          ELAPSED=$((CURRENT_TIME - START_TIME))
-          
-          echo "Elapsed time: ${ELAPSED} seconds"
-          
-          # If elapsed time is close to our 5-minute (300 second) timeout, treat as timeout
-          if [ "$ELAPSED" -ge 280 ] && [ "$ELAPSED" -le 400 ] && [ "$CONCLUSION" != "success" ]; then
-            echo "Detected timeout condition. Attempting to re-run workflow..."
-            
-            # Get the workflow file name
-            WORKFLOW_FILE="blank.yml"
-            
-            # Trigger a new workflow run for the same PR
-            curl -X POST \
-              -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/$WORKFLOW_FILE/dispatches" \
-              -d "{\"ref\":\"$REF\"}"
-            
-            echo "Re-run request sent for workflow: $WORKFLOW_FILE on ref: $REF"
-          else
-            echo "Not a timeout condition - skipping re-run (elapsed: ${ELAPSED}s, conclusion: $CONCLUSION)"
-          fi
