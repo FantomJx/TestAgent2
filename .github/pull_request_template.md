@@ -1,5 +1,15 @@
 ## AI Review Configuration
 Write an X to mark as yes:
-- [ ] Do you have important changes? (default: no)
+- [ ] Do you have important changes?
 - [ ] Do you want to explicitly use Claude Sonnet 4 for more depth?
+
+## Custom Review Settings (Optional)
+*Only change these if you need different thresholds:*
+
+** Use Claude when PR has more than:** `200` lines  
+** Update architecture summary when:** `1` or more files changed
+
+---
+** Quick Guide:** Just replace the numbers inside the backticks `` if needed
+- Leave blank or unchanged to use system defaults
 
