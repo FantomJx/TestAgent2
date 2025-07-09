@@ -131,6 +131,16 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
 
             return '[]'
 
+        # Log token usage information if available
+        if 'usage' in data:
+            usage = data['usage']
+            input_tokens = usage.get('input_tokens', 0)
+            output_tokens = usage.get('output_tokens', 0)
+            total_tokens = input_tokens + output_tokens
+            print(f"Claude API token usage - Input: {input_tokens:,}, Output: {output_tokens:,}, Total: {total_tokens:,}", file=sys.stderr)
+        else:
+            print("WARNING: No token usage information in Claude response", file=sys.stderr)
+            
         # Track cost before returning
         try:
             cost_tracker = CostTracker()
@@ -144,7 +154,10 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
             print(f"Warning: Cost tracking failed: {e}", file=sys.stderr)
 
         if 'content' in data and isinstance(data['content'], list) and len(data['content']) > 0:
-            return data['content'][0].get('text', '[]')
+            content = data['content'][0].get('text', '[]')
+            content_length = len(content)
+            print(f"Claude API response content length: {content_length:,} characters", file=sys.stderr)
+            return content
         else:
             return data.get('text', '[]')
     except Exception as e:
@@ -176,6 +189,16 @@ def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
         if 'error' in data:
             print(f'OpenAI API Error: {data["error"]}', file=sys.stderr)
             return '[]'
+            
+        # Log token usage information
+        if 'usage' in data:
+            usage = data['usage']
+            prompt_tokens = usage.get('prompt_tokens', 0)
+            completion_tokens = usage.get('completion_tokens', 0)
+            total_tokens = usage.get('total_tokens', 0)
+            print(f"OpenAI API token usage - Prompt: {prompt_tokens:,}, Completion: {completion_tokens:,}, Total: {total_tokens:,}", file=sys.stderr)
+        else:
+            print("WARNING: No token usage information in OpenAI response", file=sys.stderr)
 
         # Track cost before returning
         try:
@@ -189,7 +212,10 @@ def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
         except Exception as e:
             print(f"Warning: Cost tracking failed: {e}", file=sys.stderr)
 
-        return data.get('choices', [{}])[0].get('message', {}).get('content', '[]')
+        content = data.get('choices', [{}])[0].get('message', {}).get('content', '[]')
+        content_length = len(content)
+        print(f"OpenAI API response content length: {content_length:,} characters", file=sys.stderr)
+        return content
     except Exception as e:
         print(f'Error parsing OpenAI response: {e}', file=sys.stderr)
         return '[]'
