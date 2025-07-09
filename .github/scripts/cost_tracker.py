@@ -154,52 +154,80 @@ class CostTracker:
             'total_output_tokens': total_output_tokens,
             'by_model': by_model,
             'by_type': by_type,
-            'individual_calls': self.costs['calls']
+            'individual_calls': self.costs['calls'],
+            'timestamp': self._get_timestamp()
         }
     
     def print_detailed_summary(self):
         """Print a detailed cost summary to stderr."""
         summary = self.get_summary()
         
-        print("\n" + "="*60, file=sys.stderr)
-        print("AI USAGE COST SUMMARY", file=sys.stderr)
-        print("="*60, file=sys.stderr)
+        # Header with box drawing
+        print("\n┌" + "─" * 78 + "┐", file=sys.stderr)
+        print("│" + " " * 27 + "AI USAGE COST SUMMARY" + " " * 30 + "│", file=sys.stderr)
+        print("└" + "─" * 78 + "┘", file=sys.stderr)
         
-        print(f"Total Cost: ${summary['total_cost']:.6f}", file=sys.stderr)
-        print(f"Total API Calls: {summary['total_calls']}", file=sys.stderr)
-        print(f"Total Input Tokens: {summary['total_input_tokens']:,}", file=sys.stderr)
-        print(f"Total Output Tokens: {summary['total_output_tokens']:,}", file=sys.stderr)
+        # Overall summary box
+        print("\nOVERALL STATISTICS", file=sys.stderr)
+        print("┌─────────────────────┬─────────────────────────────────────────────────────┐", file=sys.stderr)
+        print(f"│ Total Cost          │ ${summary['total_cost']:>11.6f}                                   │", file=sys.stderr)
+        print(f"│ Total API Calls     │ {summary['total_calls']:>11,}                                   │", file=sys.stderr)
+        print(f"│ Total Input Tokens  │ {summary['total_input_tokens']:>11,}                                   │", file=sys.stderr)
+        print(f"│ Total Output Tokens │ {summary['total_output_tokens']:>11,}                                   │", file=sys.stderr)
+        print("└─────────────────────┴─────────────────────────────────────────────────────┘", file=sys.stderr)
         
-        print("\nCOST BY MODEL:", file=sys.stderr)
-        print("-" * 40, file=sys.stderr)
-        for model, data in summary['by_model'].items():
-            print(f"{model}:", file=sys.stderr)
-            print(f"  Calls: {data['calls']}", file=sys.stderr)
-            print(f"  Input tokens: {data['input_tokens']:,}", file=sys.stderr)
-            print(f"  Output tokens: {data['output_tokens']:,}", file=sys.stderr)
-            print(f"  Cost: ${data['cost']:.6f}", file=sys.stderr)
+        # Cost by model table
+        if summary['by_model']:
+            print("\nCOST BY MODEL", file=sys.stderr)
+            print("┌─────────────────────────┬───────┬─────────────┬──────────────┬─────────────┐", file=sys.stderr)
+            print("│ Model                   │ Calls │ Input Tokens│ Output Tokens│    Cost ($) │", file=sys.stderr)
+            print("├─────────────────────────┼───────┼─────────────┼──────────────┼─────────────┤", file=sys.stderr)
+            
+            for model, data in summary['by_model'].items():
+                model_name = model[:23] if len(model) > 23 else model
+                print(f"│ {model_name:<23} │ {data['calls']:>5} │ {data['input_tokens']:>11,} │ {data['output_tokens']:>12,} │ {data['cost']:>11.6f} │", file=sys.stderr)
+            
+            print("└─────────────────────────┴───────┴─────────────┴──────────────┴─────────────┘", file=sys.stderr)
         
-        print("\nCOST BY OPERATION:", file=sys.stderr)
-        print("-" * 40, file=sys.stderr)
-        for op_type, data in summary['by_type'].items():
-            print(f"{op_type}:", file=sys.stderr)
-            print(f"  Calls: {data['calls']}", file=sys.stderr)
-            print(f"  Input tokens: {data['input_tokens']:,}", file=sys.stderr)
-            print(f"  Output tokens: {data['output_tokens']:,}", file=sys.stderr)
-            print(f"  Cost: ${data['cost']:.6f}", file=sys.stderr)
+        # Cost by operation table
+        if summary['by_type']:
+            print("\nCOST BY OPERATION", file=sys.stderr)
+            print("┌─────────────────────────┬───────┬─────────────┬──────────────┬─────────────┐", file=sys.stderr)
+            print("│ Operation               │ Calls │ Input Tokens│ Output Tokens│    Cost ($) │", file=sys.stderr)
+            print("├─────────────────────────┼───────┼─────────────┼──────────────┼─────────────┤", file=sys.stderr)
+            
+            for op_type, data in summary['by_type'].items():
+                op_name = op_type[:23] if len(op_type) > 23 else op_type
+                print(f"│ {op_name:<23} │ {data['calls']:>5} │ {data['input_tokens']:>11,} │ {data['output_tokens']:>12,} │ {data['cost']:>11.6f} │", file=sys.stderr)
+            
+            print("└─────────────────────────┴───────┴─────────────┴──────────────┴─────────────┘", file=sys.stderr)
         
+        # Individual calls table
         if summary['individual_calls']:
-            print("\nINDIVIDUAL CALLS:", file=sys.stderr)
-            print("-" * 40, file=sys.stderr)
+            print("\nINDIVIDUAL CALLS", file=sys.stderr)
+            print("┌────┬──────────────┬─────────────────────────┬─────────────┬──────────────┬─────────────┐", file=sys.stderr)
+            print("│ #  │ Operation    │ Model                   │ Input Tokens│ Output Tokens│    Cost ($) │", file=sys.stderr)
+            print("├────┼──────────────┼─────────────────────────┼─────────────┼──────────────┼─────────────┤", file=sys.stderr)
+            
             for i, call in enumerate(summary['individual_calls'], 1):
-                print(f"{i}. {call['call_type']} - {call['model']}", file=sys.stderr)
-                print(f"   Input: {call['input_tokens']:,} tokens, Output: {call['output_tokens']:,} tokens", file=sys.stderr)
-                print(f"   Cost: ${call['cost']:.6f}", file=sys.stderr)
+                op_name = call['call_type'][:12] if len(call['call_type']) > 12 else call['call_type']
+                model_name = call['model'][:23] if len(call['model']) > 23 else call['model']
+                print(f"│ {i:>2} │ {op_name:<12} │ {model_name:<23} │ {call['input_tokens']:>11,} │ {call['output_tokens']:>12,} │ {call['cost']:>11.6f} │", file=sys.stderr)
+                
+                # Add context row if present
                 if call.get('context'):
-                    print(f"   Context: {call['context']}", file=sys.stderr)
+                    context_text = call['context'][:75] + "..." if len(call['context']) > 75 else call['context']
+                    print(f"│    │ Context: {context_text:<68} │", file=sys.stderr)
+            
+            print("└────┴──────────────┴─────────────────────────┴─────────────┴──────────────┴─────────────┘", file=sys.stderr)
         
-        print("="*60, file=sys.stderr)
-
+        print(f"\nReport generated on {summary.get('timestamp', 'unknown time')}", file=sys.stderr)
+    
+    def _get_timestamp(self):
+        """Get current timestamp in a readable format."""
+        from datetime import datetime
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
 
 def initialize_cost_tracking():
     """Initialize cost tracking for the workflow."""
