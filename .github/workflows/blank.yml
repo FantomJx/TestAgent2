@@ -111,6 +111,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           SHOULD_SUMMARIZE: 'true'
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
         run: |
           python3 .github/scripts/summarize_architecture.py
           

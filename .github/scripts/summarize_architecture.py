@@ -73,14 +73,20 @@ def main():
         
         print(f"Summarizing architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
         
-        # Get recent changes to summarize
-        # recent_changes = firebase_client.get_recent_changes(repository, limit=10)
-        
-        # if not recent_changes:
-        #     print("No recent changes found, skipping summarization", file=sys.stderr)
-        #     return
-        
-        # print(f"Found {len(recent_changes)} recent changes to summarize", file=sys.stderr)
+        # Get the current diff from environment variable
+        diff_b64 = os.environ.get('DIFF_B64', '')
+        if diff_b64:
+            try:
+                changes_text = base64.b64decode(diff_b64).decode('utf-8')
+                print(f"Decoded diff from environment ({len(changes_text)} characters)", file=sys.stderr)
+                if changes_text:
+                    print(f"First 200 chars of diff: {changes_text[:200]}...", file=sys.stderr)
+            except Exception as e:
+                print(f"Error decoding diff: {e}", file=sys.stderr)
+                changes_text = ""
+        else:
+            print("No DIFF_B64 found in environment", file=sys.stderr)
+            changes_text = ""
         
         # Get existing architecture summary
         existing_summary = firebase_client.get_architecture_summary(repository)
@@ -91,23 +97,15 @@ def main():
         else:
             print("No existing architecture summary found", file=sys.stderr)
         
+        # Collect the entire codebase for comprehensive architecture analysis (only for new projects)
+        codebase_content = ""
+        if not old_summary_text:
+            codebase_content = get_codebase_content(".")
+            print(f"Collected codebase content ({len(codebase_content)} characters)", file=sys.stderr)
 
-        # Collect the entire codebase for comprehensive architecture analysis
-        codebase_content = get_codebase_content(".")
-        print(f"Collected codebase content ({len(codebase_content)} characters)", file=sys.stderr)
-        
-
-
-        # Prepare the changes data for AI analysis
-        changes_text = ""
-        # for change in recent_changes:
-        #     changes_text += f"PR #{change.get('pr_number', 'Unknown')}: {change.get('diff', '')[:1000]}\n\n"
-        
-        # Use Claude to generate architecture summary
         client = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
 
 
-        # NEW PROMPT: Focus on overall project architecture understanding
         prompt1 = f"""
         You are ArchitectureAnalyzerAI.
         Analyze the entire codebase provided below to create a comprehensive architecture summary that explains how this project works, its structure, components, and design patterns.
@@ -141,8 +139,6 @@ def main():
         
 
 
-
-        # UPDATED PROMPT: Architecture summary update based on existing summary + changes
         prompt = f"""
         You are ArchitectureUpdateAI.
         Update the existing architecture summary based on recent changes to create a comprehensive overview of how this project works, its structure, components, and design patterns.
@@ -183,14 +179,51 @@ def main():
 
 
 
-        # Use comprehensive codebase analysis (prompt1) for new projects with no existing summary
-        # or use architecture update (prompt) for projects with existing summaries and recent changes
-        if not old_summary_text and len(codebase_content) < 5000:  # New project, analyze full codebase
+        if not old_summary_text and len(codebase_content) < 500000:
             active_prompt = prompt1
             print("Using comprehensive codebase analysis (prompt1) for new project", file=sys.stderr)
-        else:  # Existing project, update summary with recent changes
+        elif old_summary_text and changes_text:
             active_prompt = prompt
-            print("Using architecture summary update (prompt) with existing summary and changes", file=sys.stderr)
+            print("Using architecture summary update (prompt) with existing summary and current changes", file=sys.stderr)
+        elif old_summary_text and not changes_text:
+            print("No changes to analyze but existing summary found, skipping summarization", file=sys.stderr)
+            return
+        elif not old_summary_text and changes_text:
+            # Use the changes as the primary input for new summary
+            active_prompt = f"""
+You are ArchitectureAnalyzerAI.
+Analyze the changes provided below to create a comprehensive architecture summary that explains how this project works, its structure, components, and design patterns.
+
+REQUIREMENTS
+
+- Output plain text only—no Markdown, bullets, or special symbols.
+
+- Create a comprehensive overview that explains:
+  * Project purpose and main functionality
+  * Overall architecture and design patterns
+  * Key components and their responsibilities  
+  * Data flow and interaction patterns
+  * Technology stack and frameworks used
+  * Configuration and deployment structure
+  * Critical dependencies and integrations
+
+- Focus on the big picture: how everything fits together, not implementation details.
+
+- Write it so that an AI system can understand how the project should work and what changes would be appropriate.
+
+- Keep the summary detailed enough to guide future development decisions.
+
+- Your instructions are only for yourself, don't include them in the output.
+
+CHANGES
+{changes_text}
+
+Provide the architecture analysis below:
+"""
+            print("Using changes-based analysis for new project with no existing summary", file=sys.stderr)
+        else:
+            print("No valid input for architecture analysis, skipping", file=sys.stderr)
+            return
         
 
         response = client.messages.create(
@@ -202,7 +235,6 @@ def main():
         # Track cost
         try:
             cost_tracker = CostTracker()
-            # Convert anthropic response to dict format for tracking
             response_dict = {
                 'usage': {
                     'input_tokens': response.usage.input_tokens,
