@@ -31,4 +31,4 @@ services:
       - .:/app
       
     # Override command for different operations
-    command: python .github/scripts/ai_review.py
+    command: python scripts/ai_review.py
