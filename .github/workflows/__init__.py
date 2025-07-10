@@ -11,26 +11,8 @@ including cost tracking, Firebase operations, AI review processes, and more.
 __version__ = "1.0.0"
 __author__ = "Your Name"
 
-# Import main modules to make them available at package level
-try:
-    from . import cost_tracker
-    from . import firebase_client
-    from . import ai_review
-    from . import debug_firebase
-    from . import display_costs
-    from . import fetch_firebase_context
-    from . import fetch_macros
-    from . import parse_pr_macros
-    from . import post_comments
-    from . import summarize_architecture
-    from . import test_firebase
-    from . import track_architecture
-except ImportError as e:
-    # Handle import errors gracefully for optional dependencies
-    print(f"Warning: Could not import some modules: {e}")
-
-# Define what gets imported with "from workflows import *"
-__all__ = [
+# List of expected modules
+_EXPECTED_MODULES = [
     'cost_tracker',
     'firebase_client', 
     'ai_review',
@@ -44,6 +26,28 @@ __all__ = [
     'test_firebase',
     'track_architecture'
 ]
+
+# Import main modules to make them available at package level
+_available_modules = []
+_missing_modules = []
+
+for module_name in _EXPECTED_MODULES:
+    try:
+        module = __import__(f'.{module_name}', package=__name__, level=0)
+        _available_modules.append(module_name)
+        # Make the module available at package level
+        globals()[module_name] = getattr(module, module_name, module)
+    except ImportError:
+        _missing_modules.append(module_name)
+
+# Only show warning if we're not in a GitHub Actions environment
+import os
+if _missing_modules and not os.getenv('GITHUB_ACTIONS'):
+    print(f"Info: Some workflow modules are not available: {', '.join(_missing_modules)}")
+    print(f"Available modules: {', '.join(_available_modules) if _available_modules else 'None'}")
+
+# Define what gets imported with "from workflows import *"
+__all__ = _available_modules
 
 # Package metadata
 __package_name__ = "github_workflows"
