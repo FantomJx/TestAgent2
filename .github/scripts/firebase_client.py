@@ -6,27 +6,27 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 import base64
 import logging
-from fetch_macros import initialize_firebase, fetch_macros
-
-# Configuration - Firebase service account file
-FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent-21ba8-firebase-adminsdk-fbsvc-9238683630.json"
+from fetch_macros import fetch_macros
 
 class FirebaseClient:
-    def __init__(self, service_account_path=None, project_name="test"):
+    def __init__(self, project_name="test"):
         try:
             if not firebase_admin._apps:
-                # Use provided path or default to the JSON file
-                if not service_account_path:
-                    script_dir = os.path.dirname(os.path.abspath(__file__))
-                    github_dir = os.path.dirname(script_dir)
-                    service_account_path = os.path.join(github_dir, FIREBASE_SERVICE_ACCOUNT_FILE)
-                
-                if not os.path.exists(service_account_path):
-                    raise FileNotFoundError(f"Firebase credentials file not found at: {service_account_path}")
-                    
-                cred = credentials.Certificate(service_account_path)
+                # Build service account info from environment variables (GitHub secrets)
+                service_account_info = {
+                    "type": "service_account",
+                    "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+                    "private_key_id": "hardcoded-private-key-id",
+                    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
+                    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+                    "client_id": "hardcoded-client-id",
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                    "client_x509_cert_url": "hardcoded-client-x509-cert-url"
+                }
+                cred = credentials.Certificate(service_account_info)
                 firebase_admin.initialize_app(cred)
-            
             self.db = firestore.client()
             self.project_name = project_name
         except Exception as e:
