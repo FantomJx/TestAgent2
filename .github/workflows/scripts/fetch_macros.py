@@ -10,6 +10,17 @@ FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6
 def initialize_firebase():
     """Initialize Firebase Admin SDK using service account JSON file."""
     try:
+        # Required environment variables
+        required_env_vars = [
+            "FIREBASE_PROJECT_ID",
+            "FIREBASE_PRIVATE_KEY",
+            "FIREBASE_CLIENT_EMAIL"
+        ]
+        missing_vars = [var for var in required_env_vars if not os.environ.get(var)]
+        if missing_vars:
+            print(f"Error: Missing required environment variables: {', '.join(missing_vars)}")
+            return False
+
         # Build service account info from environment variables (GitHub secrets)
         service_account_info = {
             "type": "service_account",
