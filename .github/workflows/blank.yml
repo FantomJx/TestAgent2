@@ -68,23 +68,23 @@ jobs:
           command: |
             python3 .github/workflows/scripts/parse_pr_macros.py
 
-      - name: Fetch configuration macros from Firebase
-        id: fetch-macros
-        # continue-on-error: true  # Temporarily disabled to see actual errors
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 1
-          max_attempts: 2
-          retry_on: both
-          command: |
-            echo "Starting Firebase macro fetch..."
-            echo "Checking environment variables..."
-            echo "FIREBASE_SERVICE_ACCOUNT_JSON is set: $([[ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]] && echo "YES" || echo "NO")"
-            echo "Running fetch_macros.py..."
-            python3 .github/workflows/scripts/fetch_macros.py
-            echo "Firebase macro fetch completed."
+      # - name: Fetch configuration macros from Firebase
+      #   id: fetch-macros
+      #   # continue-on-error: true  # Temporarily disabled to see actual errors
+      #   env:
+      #     FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      #   uses: nick-invision/retry@v2
+      #   with:
+      #     timeout_minutes: 1
+      #     max_attempts: 2
+      #     retry_on: both
+      #     command: |
+      #       echo "Starting Firebase macro fetch..."
+      #       echo "Checking environment variables..."
+      #       echo "FIREBASE_SERVICE_ACCOUNT_JSON is set: $([[ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]] && echo "YES" || echo "NO")"
+      #       echo "Running fetch_macros.py..."
+      #       python3 .github/workflows/scripts/fetch_macros.py
+      #       echo "Firebase macro fetch completed."
 
       - name: Resolve final macro configuration
         id: resolve-macros
