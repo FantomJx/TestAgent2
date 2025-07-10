@@ -18,7 +18,8 @@ class FirebaseClient:
                 # Use provided path or default to the JSON file
                 if not service_account_path:
                     script_dir = os.path.dirname(os.path.abspath(__file__))
-                    github_dir = os.path.dirname(script_dir)
+                    workflows_dir = os.path.dirname(script_dir)
+                    github_dir = os.path.dirname(workflows_dir)
                     service_account_path = os.path.join(github_dir, FIREBASE_SERVICE_ACCOUNT_FILE)
                 
                 if not os.path.exists(service_account_path):
