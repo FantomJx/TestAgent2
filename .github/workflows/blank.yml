@@ -10,7 +10,11 @@ on:
         required: false
         type: string
     secrets:
-      GH_TOKEN:
+      PAT_TOKEN:
+        required: true
+      ANTHROPIC_API_KEY:
+        required: true
+      OPENAI_API_KEY:
         required: true
 
 
