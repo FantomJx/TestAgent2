@@ -16,6 +16,8 @@ on:
         required: true
       OPENAI_API_KEY:
         required: true
+      FIREBASE_SERVICE_ACCOUNT_JSON:
+        required: true
 
 jobs:
   claude-review:
@@ -61,6 +63,8 @@ jobs:
       - name: Fetch configuration macros from Firebase
         id: fetch-macros
         continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
@@ -212,6 +216,7 @@ jobs:
         if: steps.check-important.outputs.is_important_change == 'true'
         continue-on-error: true
         env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -232,6 +237,7 @@ jobs:
         if: steps.check-important.outputs.is_important_change == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
         continue-on-error: true
         env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
@@ -250,6 +256,7 @@ jobs:
         id: fetch-context
         continue-on-error: true
         env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}

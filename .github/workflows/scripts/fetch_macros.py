@@ -4,27 +4,23 @@ import json
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# Configuration - Firebase service account file
-FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent.json"
-
 def initialize_firebase():
-    """Initialize Firebase Admin SDK using service account JSON file."""
+    """Initialize Firebase Admin SDK using service account JSON from environment variable."""
     try:
-        # Get the path to the service account file
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        workflows_dir = os.path.dirname(script_dir)
-        github_dir = os.path.dirname(workflows_dir)
-        service_account_path = os.path.join(github_dir, FIREBASE_SERVICE_ACCOUNT_FILE)
+        # Get the service account JSON from environment variable
+        service_account_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON')
         
-        if not os.path.exists(service_account_path):
-            raise FileNotFoundError(f"Firebase service account file not found at: {service_account_path}")
+        if not service_account_json:
+            raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON environment variable not set")
         
-        # Load the service account JSON
-        with open(service_account_path, 'r') as f:
-            service_account_info = json.load(f)
+        # Parse the JSON string into a dictionary
+        try:
+            service_account_info = json.loads(service_account_json)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in FIREBASE_SERVICE_ACCOUNT_JSON: {str(e)}")
         
-        # Initialize Firebase Admin with the service account file
-        cred = credentials.Certificate(service_account_path)
+        # Initialize Firebase Admin with the service account info
+        cred = credentials.Certificate(service_account_info)
         firebase_admin.initialize_app(cred)
         
         print("Firebase initialized successfully")

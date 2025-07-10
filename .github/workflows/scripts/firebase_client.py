@@ -8,24 +8,24 @@ import base64
 import logging
 from fetch_macros import initialize_firebase, fetch_macros
 
-# Configuration - Firebase service account file
-FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent.json"
-
 class FirebaseClient:
-    def __init__(self, service_account_path=None, project_name="test"):
+    def __init__(self, service_account_json=None, project_name="test"):
         try:
             if not firebase_admin._apps:
-                # Use provided path or default to the JSON file
-                if not service_account_path:
-                    script_dir = os.path.dirname(os.path.abspath(__file__))
-                    workflows_dir = os.path.dirname(script_dir)
-                    github_dir = os.path.dirname(workflows_dir)
-                    service_account_path = os.path.join(github_dir, FIREBASE_SERVICE_ACCOUNT_FILE)
+                # Use provided JSON string or get from environment variable
+                if not service_account_json:
+                    service_account_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON')
                 
-                if not os.path.exists(service_account_path):
-                    raise FileNotFoundError(f"Firebase credentials file not found at: {service_account_path}")
+                if not service_account_json:
+                    raise ValueError("Firebase service account JSON not provided via parameter or FIREBASE_SERVICE_ACCOUNT_JSON environment variable")
+                
+                # Parse the JSON string into a dictionary
+                try:
+                    service_account_info = json.loads(service_account_json)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON in Firebase service account credentials: {str(e)}")
                     
-                cred = credentials.Certificate(service_account_path)
+                cred = credentials.Certificate(service_account_info)
                 firebase_admin.initialize_app(cred)
             
             self.db = firestore.client()
