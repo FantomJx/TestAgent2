@@ -20,7 +20,6 @@ on:
 jobs:
   claude-review:
     runs-on: ubuntu-latest
-    timeout-minutes: 1
     permissions:
       pull-requests: write
       contents: read
@@ -324,7 +323,7 @@ jobs:
           retry_on: both
           command: |
             echo "Starting AI review with 2-minute delay to test timeout..."
-            sleep 120
+            sleep 180
             python3 .github/scripts/ai_review.py 2>/tmp/ai_review_debug.log
 
       - name: Display AI costs so far
