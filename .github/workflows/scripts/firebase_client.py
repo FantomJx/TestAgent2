@@ -18,13 +18,50 @@ class FirebaseClient:
                     raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON environment variable is required")
                 
                 # Parse the JSON string
-                service_account_info = json.loads(service_account_json)
+                try:
+                    service_account_info = json.loads(service_account_json)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON in FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
+                
+                # Validate required fields
+                required_fields = ['project_id', 'private_key', 'client_email']
+                for field in required_fields:
+                    if field not in service_account_info:
+                        raise ValueError(f"Missing required field '{field}' in service account JSON")
+                
+                logging.info(f"Initializing Firebase for project: {service_account_info.get('project_id')}")
                 cred = credentials.Certificate(service_account_info)
                 firebase_admin.initialize_app(cred)
+                
             self.db = firestore.client()
             self.project_name = project_name
+            logging.info(f"Firebase client initialized successfully for project: {project_name}")
         except Exception as e:
             logging.error(f"Failed to initialize Firebase: {str(e)}")
+            logging.error(f"Exception type: {type(e).__name__}")
+            raise
+    
+    def _execute_with_timeout(self, func, timeout=30):
+        """Execute a function with timeout"""
+        import signal
+        
+        def timeout_handler(signum, frame):
+            raise TimeoutError(f"Firebase operation timed out after {timeout} seconds")
+        
+        # Set timeout
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(timeout)
+        
+        try:
+            result = func()
+            signal.alarm(0)  # Cancel the alarm
+            return result
+        except TimeoutError:
+            logging.error(f"Firebase operation timed out after {timeout} seconds")
+            raise
+        except Exception as e:
+            signal.alarm(0)  # Cancel the alarm
+            logging.error(f"Firebase operation failed: {str(e)}")
             raise
     
     def get_architecture_summary(self, repository):
@@ -33,16 +70,19 @@ class FirebaseClient:
             return None
             
         try:
-            # Use project_name as the main collection path
-            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
-            doc = doc_ref.get()
-            if doc.exists:
-                data = doc.to_dict()
-                print(f"Found existing architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
-                return data
-            else:
-                print(f"No architecture summary found for {repository} in project {self.project_name}", file=sys.stderr)
-                return None
+            def _get_summary():
+                # Use project_name as the main collection path
+                doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
+                doc = doc_ref.get()
+                if doc.exists:
+                    data = doc.to_dict()
+                    print(f"Found existing architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
+                    return data
+                else:
+                    print(f"No architecture summary found for {repository} in project {self.project_name}", file=sys.stderr)
+                    return None
+            
+            return self._execute_with_timeout(_get_summary)
         except Exception as e:
             logging.error(f"Error fetching architecture summary: {str(e)}")
             return None
@@ -50,17 +90,18 @@ class FirebaseClient:
     def update_architecture_summary(self, repository, summary, changes_count=0):
         """Update the architecture summary for a repository"""
         try:
-            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
-            data = {
-                'repository': repository,
-                'summary': summary,
-                'last_updated': datetime.utcnow(),
-                'changes_count': changes_count
-            }
+            def _update_summary():
+                doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
+                data = {
+                    'repository': repository,
+                    'summary': summary,
+                    'last_updated': datetime.utcnow(),
+                    'changes_count': changes_count
+                }
+                doc_ref.set(data, merge=True)
+                print(f"Successfully updated architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
             
-            doc_ref.set(data, merge=True)
-
-
+            self._execute_with_timeout(_update_summary)
         except Exception as e:
             logging.error(f"Error updating architecture summary: {str(e)}")
             raise

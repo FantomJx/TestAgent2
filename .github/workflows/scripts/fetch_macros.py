@@ -22,27 +22,66 @@ def initialize_firebase():
             return False
 
         # Parse the JSON string
-        service_account_info = json.loads(service_account_json)
+        try:
+            service_account_info = json.loads(service_account_json)
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
+            return False
+
+        # Validate required fields in service account
+        required_fields = ['project_id', 'private_key', 'client_email']
+        for field in required_fields:
+            if field not in service_account_info:
+                print(f"Error: Missing required field '{field}' in service account JSON")
+                return False
+
+        print(f"Initializing Firebase for project: {service_account_info.get('project_id')}")
         cred = credentials.Certificate(service_account_info)
         firebase_admin.initialize_app(cred)
         print("Firebase initialized successfully")
         return True
     except Exception as e:
         print(f"Error initializing Firebase: {e}")
+        print(f"Exception type: {type(e).__name__}")
         return False
 
 def fetch_macros():
     """Fetch macro configuration values from Firestore."""
     try:
+        print("Getting Firestore client...")
         # Get Firestore client
         db = firestore.client()
         
-        # Get reference to macros document
+        print("Fetching macros document from Firestore...")
+        # Get reference to macros document with timeout
         doc_ref = db.collection('macros').document('macros')
-        doc = doc_ref.get()
+        
+        # Add explicit timeout for the get operation
+        import signal
+        
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Firestore operation timed out")
+        
+        # Set timeout for 30 seconds
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(30)
+        
+        try:
+            doc = doc_ref.get()
+            signal.alarm(0)  # Cancel the alarm
+        except TimeoutError:
+            print("Error: Firestore operation timed out after 30 seconds")
+            return None
         
         if not doc.exists:
-            print("No macros document found in Firestore")
+            print("Warning: No macros document found in Firestore")
+            print("Available collections:")
+            try:
+                collections = db.collections()
+                for collection in collections:
+                    print(f"  - {collection.id}")
+            except Exception as e:
+                print(f"  Could not list collections: {e}")
             return None
         
         macros_data = doc.to_dict()
@@ -63,13 +102,19 @@ def fetch_macros():
             
             # Set GitHub Actions output
             github_output_file = os.environ.get('GITHUB_OUTPUT', '/dev/stdout')
-            with open(github_output_file, 'a') as f:
-                f.write(f"{key.lower()}={value}\n")
+            try:
+                with open(github_output_file, 'a') as f:
+                    f.write(f"{key.lower()}={value}\n")
+            except Exception as e:
+                print(f"Warning: Could not write to GitHub output file: {e}")
         
         return macros_data
         
     except Exception as e:
         print(f"Error fetching macros: {e}")
+        print(f"Exception type: {type(e).__name__}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return None
 
 def main():

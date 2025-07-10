@@ -20,7 +20,7 @@ on:
         required: true
 
 jobs:
-  claude-review:
+  AI-review:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -30,14 +30,14 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false
 
     steps:
-      - name: Checkout full repo history
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
-          fetch-depth: 0
+      # - name: Checkout full repo history
+      #   uses: actions/checkout@v4
+      #   with:
+      #     token: ${{ secrets.PAT_TOKEN }}
+      #     fetch-depth: 0
 
       - name: Set up Python and install dependencies
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1       
           max_attempts: 2
@@ -47,7 +47,7 @@ jobs:
             pip install firebase-admin anthropic openai > /dev/null 2>&1
 
       - name: Initialize AI cost tracking
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1
           max_attempts: 2
@@ -60,7 +60,7 @@ jobs:
         continue-on-error: true
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1
           max_attempts: 2
@@ -68,69 +68,142 @@ jobs:
           command: |
             python3 .github/workflows/scripts/parse_pr_macros.py
 
-      # - name: Fetch configuration macros from Firebase
-      #   id: fetch-macros
-      #   # continue-on-error: true  # Temporarily disabled to see actual errors
-      #   env:
-      #     FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-      #   uses: nick-invision/retry@v2
-      #   with:
-      #     timeout_minutes: 1
-      #     max_attempts: 2
-      #     retry_on: both
-      #     command: |
-      #       echo "Starting Firebase macro fetch..."
-      #       echo "Checking environment variables..."
-      #       echo "FIREBASE_SERVICE_ACCOUNT_JSON is set: $([[ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]] && echo "YES" || echo "NO")"
-      #       echo "Running fetch_macros.py..."
-      #       python3 .github/workflows/scripts/fetch_macros.py
-      #       echo "Firebase macro fetch completed."
+      - name: Test Firebase connectivity
+        id: test-firebase
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        uses: nick-invision/retry
+        with:
+          timeout_minutes: 1
+          max_attempts: 1
+          retry_on: both
+          command: |
+            echo "Testing Firebase connectivity..."
+            timeout 45s python3 .github/workflows/scripts/test_firebase.py || {
+              exit_code=$?
+              echo "ERROR: Firebase connectivity test failed with exit code: $exit_code"
+              if [ $exit_code -eq 124 ]; then
+                echo "ERROR: Firebase connectivity test timed out"
+              fi
+              exit $exit_code
+            }
+
+      - name: Fetch configuration macros from Firebase
+        id: fetch-macros
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        uses: nick-invision/retry
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          retry_on: both
+          command: |
+            echo "Starting Firebase macro fetch..."
+            
+            # Check if Firebase connectivity test passed
+            if [ "${{ steps.test-firebase.outcome }}" != "success" ]; then
+              echo "WARNING: Firebase connectivity test failed, using defaults"
+              # Set default values directly
+              echo "line_threshold=200" >> "$GITHUB_OUTPUT"
+              echo "changes_threshold=5" >> "$GITHUB_OUTPUT"
+              echo "important_change_markers=#IMPORTANT-CHANGE,#IMPORTANT-CHANGES" >> "$GITHUB_OUTPUT"
+              echo "important_change_labels=important change,important changes" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            
+            echo "Checking environment variables..."
+            echo "FIREBASE_SERVICE_ACCOUNT_JSON is set: $([[ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]] && echo "YES" || echo "NO")"
+            echo "Running fetch_macros.py with timeout..."
+            
+            # Run with timeout and capture both stdout and stderr
+            timeout 90s python3 .github/workflows/scripts/fetch_macros.py 2>&1 || {
+              exit_code=$?
+              echo "ERROR: fetch_macros.py failed with exit code: $exit_code"
+              if [ $exit_code -eq 124 ]; then
+                echo "ERROR: Operation timed out after 90 seconds"
+              fi
+              echo "Falling back to default values..."
+              # Set default values
+              echo "line_threshold=200" >> "$GITHUB_OUTPUT"
+              echo "changes_threshold=5" >> "$GITHUB_OUTPUT"
+              echo "important_change_markers=#IMPORTANT-CHANGE,#IMPORTANT-CHANGES" >> "$GITHUB_OUTPUT"
+              echo "important_change_labels=important change,important changes" >> "$GITHUB_OUTPUT"
+              exit 0
+            }
+            echo "Firebase macro fetch completed successfully."
+
+      - name: Debug Firebase operations (if macro fetch failed)
+        id: debug-firebase
+        if: steps.fetch-macros.outcome == 'failure'
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        uses: nick-invision/retry
+        with:
+          timeout_minutes: 2
+          max_attempts: 1
+          retry_on: both
+          command: |
+            echo "Running Firebase debug script..."
+            timeout 100s python3 .github/workflows/scripts/debug_firebase.py 2>&1 || {
+              exit_code=$?
+              echo "DEBUG: Firebase debug script failed with exit code: $exit_code"
+              if [ $exit_code -eq 124 ]; then
+                echo "DEBUG: Firebase debug script timed out"
+              fi
+            }
 
       - name: Resolve final macro configuration
         id: resolve-macros
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1
           max_attempts: 2
           retry_on: both
           command: |
             # Priority: PR description > Firebase > defaults
+            echo "Resolving macro configuration..."
+            
+            # Helper function to get value or default
+            get_value_or_default() {
+              local pr_value="$1"
+              local firebase_value="$2"
+              local default_value="$3"
+              
+              if [ -n "$pr_value" ]; then
+                echo "$pr_value"
+              elif [ -n "$firebase_value" ]; then
+                echo "$firebase_value"
+              else
+                echo "$default_value"
+              fi
+            }
 
             # LINE_THRESHOLD
-            if [ -n "${{ steps.parse-pr-macros.outputs.pr_line_threshold }}" ]; then
-              LINE_THRESHOLD="${{ steps.parse-pr-macros.outputs.pr_line_threshold }}"
-            else
-              if [ -n "${{ steps.fetch-macros.outputs.line_threshold }}" ]; then
-                LINE_THRESHOLD="${{ steps.fetch-macros.outputs.line_threshold }}"
-              else
-                LINE_THRESHOLD="200"
-              fi
-            fi
+            LINE_THRESHOLD=$(get_value_or_default \
+              "${{ steps.parse-pr-macros.outputs.pr_line_threshold }}" \
+              "${{ steps.fetch-macros.outputs.line_threshold }}" \
+              "200")
 
             # CHANGES_THRESHOLD
-            if [ -n "${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}" ]; then
-              CHANGES_THRESHOLD="${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}"
-            else
-              if [ -n "${{ steps.fetch-macros.outputs.changes_threshold }}" ]; then
-                CHANGES_THRESHOLD="${{ steps.fetch-macros.outputs.changes_threshold }}"
-              else
-                CHANGES_THRESHOLD="5"
-              fi
-            fi
+            CHANGES_THRESHOLD=$(get_value_or_default \
+              "${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}" \
+              "${{ steps.fetch-macros.outputs.changes_threshold }}" \
+              "5")
 
             # IMPORTANT_CHANGE_MARKERS (only from Firebase or defaults - not configurable in PR)
-            if [ -n "${{ steps.fetch-macros.outputs.important_change_markers }}" ]; then
-              IMPORTANT_CHANGE_MARKERS="${{ steps.fetch-macros.outputs.important_change_markers }}"
-            else
-              IMPORTANT_CHANGE_MARKERS="#IMPORTANT-CHANGE,#IMPORTANT-CHANGES"
-            fi
+            IMPORTANT_CHANGE_MARKERS=$(get_value_or_default \
+              "" \
+              "${{ steps.fetch-macros.outputs.important_change_markers }}" \
+              "#IMPORTANT-CHANGE,#IMPORTANT-CHANGES")
 
             # IMPORTANT_CHANGE_LABELS (only from Firebase or defaults - not configurable in PR)
-            if [ -n "${{ steps.fetch-macros.outputs.important_change_labels }}" ]; then
-              IMPORTANT_CHANGE_LABELS="${{ steps.fetch-macros.outputs.important_change_labels }}"
-            else
-              IMPORTANT_CHANGE_LABELS="important change,important changes"
-            fi
+            IMPORTANT_CHANGE_LABELS=$(get_value_or_default \
+              "" \
+              "${{ steps.fetch-macros.outputs.important_change_labels }}" \
+              "important change,important changes")
 
             # Set outputs
             echo "line_threshold=$LINE_THRESHOLD" >> "$GITHUB_OUTPUT"
@@ -144,10 +217,12 @@ jobs:
             echo "  CHANGES_THRESHOLD: $CHANGES_THRESHOLD"
             echo "  IMPORTANT_CHANGE_MARKERS: $IMPORTANT_CHANGE_MARKERS"
             echo "  IMPORTANT_CHANGE_LABELS: $IMPORTANT_CHANGE_LABELS"
+            echo "  Firebase fetch status: ${{ steps.fetch-macros.outcome }}"
+            echo "  Firebase test status: ${{ steps.test-firebase.outcome }}"
 
       - name: Generate diff between base and head (excluding workflow file)
         id: diff
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 2   
           max_attempts: 2
@@ -166,7 +241,7 @@ jobs:
 
       - name: Check for important changes
         id: check-important
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1       
           max_attempts: 2
@@ -229,7 +304,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1
           max_attempts: 2
@@ -247,7 +322,7 @@ jobs:
           SHOULD_SUMMARIZE: "true"
           PR_NUMBER: ${{ github.event.pull_request.number }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 3
           max_attempts: 2
@@ -263,7 +338,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1
           max_attempts: 2
@@ -273,7 +348,7 @@ jobs:
 
       - name: Choose model based on line count and labels
         id: choose-model
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1
           max_attempts: 2
@@ -326,7 +401,7 @@ jobs:
           HAS_IMPORTANT_LABEL: ${{ steps.choose-model.outputs.has_important_label }}
           LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
           ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 2
           max_attempts: 2
@@ -336,7 +411,7 @@ jobs:
 
       - name: Display AI costs so far
         if: always()
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1
           max_attempts: 2
@@ -353,7 +428,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 2
           max_attempts: 2
@@ -377,7 +452,7 @@ jobs:
       - name: Finalize AI cost tracking and display summary
         id: cost-summary
         if: always()
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry
         with:
           timeout_minutes: 1
           max_attempts: 2
