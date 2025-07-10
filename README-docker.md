@@ -14,19 +14,19 @@ This Docker image packages GitHub workflows for AI-powered code review and archi
 
 ### Pull the image
 ```bash
-docker pull yourusername/github-workflows:latest
+docker pull kaloyangavrilov/github-workflows:latest
 ```
 
 ### Run health check
 ```bash
-docker run --rm yourusername/github-workflows:latest health
+docker run --rm kaloyangavrilov/github-workflows:latest health
 ```
 
 ### Fetch configuration macros
 ```bash
 docker run --rm \
   -e FIREBASE_SERVICE_ACCOUNT_JSON="$FIREBASE_JSON" \
-  yourusername/github-workflows:latest fetch-macros
+  kaloyangavrilov/github-workflows:latest fetch-macros
 ```
 
 ### Run AI code review
@@ -34,12 +34,12 @@ docker run --rm \
 docker run --rm \
   -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
   -e OPENAI_API_KEY="$OPENAI_API_KEY" \
-  yourusername/github-workflows:latest ai-review "$(cat diff.txt)"
+  kaloyangavrilov/github-workflows:latest ai-review "$(cat diff.txt)"
 ```
 
 ### Interactive shell
 ```bash
-docker run -it --rm yourusername/github-workflows:latest bash
+docker run -it --rm kaloyangavrilov/github-workflows:latest bash
 ```
 
 ## Environment Variables
@@ -58,7 +58,7 @@ docker run -it --rm yourusername/github-workflows:latest bash
 version: '3.8'
 services:
   github-workflows:
-    image: yourusername/github-workflows:latest
+    image: kaloyangavrilov/github-workflows:latest
     environment:
       - FIREBASE_SERVICE_ACCOUNT_JSON=${FIREBASE_SERVICE_ACCOUNT_JSON}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -78,3 +78,48 @@ docker run --rm github-workflows:local health
 - `latest` - Latest stable version
 - `main` - Latest development version
 - `v1.0.0` - Specific version tags
+
+## Extracting Workflows for Other Repositories
+
+You can extract the `.github` workflows from this Docker image to use in other repositories:
+
+### Method 1: Using the extraction script
+```bash
+# Download the extraction script
+curl -O https://raw.githubusercontent.com/yourusername/yourrepo/main/extract-workflows.sh
+chmod +x extract-workflows.sh
+
+# Extract workflows to a directory
+./extract-workflows.sh .github
+
+# Now you have .github folder ready to use in your repository
+```
+
+### Method 2: Manual extraction
+```bash
+# Create temporary container
+docker create --name temp-extract kaloyangavrilov/github-workflows:latest
+
+# Copy .github folder
+docker cp temp-extract:/app/.github ./.github
+
+# Clean up
+docker rm temp-extract
+
+# Now you have .github folder ready to use
+```
+
+### What you get:
+- AI-powered code review workflows
+- Architecture summary generation
+- Cost tracking for AI API usage
+- Firebase integration scripts
+- Pull request templates
+
+### Required setup in your new repository:
+1. Add the following secrets to your repository:
+   - `FIREBASE_SERVICE_ACCOUNT_JSON`
+   - `ANTHROPIC_API_KEY`
+   - `OPENAI_API_KEY`
+2. Customize workflow triggers and settings as needed
+3. Update Firebase configuration for your project
