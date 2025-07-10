@@ -32,7 +32,7 @@ def initialize_firebase():
                     "type": "service_account",
                     "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
                     "private_key_id": "92386836308c1cb6294effbea156da5ff8e63434",
-                    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY"),
+                    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
                     "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
                     "client_id": "109866713813341583021",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
