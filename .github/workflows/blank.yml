@@ -5,17 +5,17 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
   workflow_call:
-    inputs:
-      username:
-        required: false
-        type: string
-    secrets:
-      PAT_TOKEN:
-        required: true
-      ANTHROPIC_API_KEY:
-        required: true
-      OPENAI_API_KEY:
-        required: true
+    # inputs:
+    #   username:
+    #     required: false
+    #     type: string
+    # secrets:
+    #   PAT_TOKEN:
+    #     required: true
+    #   ANTHROPIC_API_KEY:
+    #     required: true
+    #   OPENAI_API_KEY:
+    #     required: true
 
 jobs:
   claude-review:
