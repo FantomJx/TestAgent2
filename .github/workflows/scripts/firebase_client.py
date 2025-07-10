@@ -9,7 +9,7 @@ import logging
 from fetch_macros import initialize_firebase, fetch_macros
 
 # Configuration - Firebase service account file
-FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent-21ba8-firebase-adminsdk-fbsvc-9238683630.json"
+FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent.json"
 
 class FirebaseClient:
     def __init__(self, service_account_path=None, project_name="test"):
