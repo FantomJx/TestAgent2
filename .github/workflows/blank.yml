@@ -59,11 +59,6 @@ jobs:
           command: |
             cd .github/workflows/scripts && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
 
-      # Uncomment below to test cost tracking functionality
-      # - name: Test cost tracking (optional)
-      #   run: |
-      #     python3 .github/scripts/test_cost_tracking.py
-
       - name: Parse macros from PR description
         id: parse-pr-macros
         continue-on-error: true
@@ -96,10 +91,10 @@ jobs:
       - name: Fetch configuration macros from Firebase
         id: fetch-macros
         # continue-on-error: true  # Temporarily disabled to see actual errors
-        env:
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+        # env:
+        #   FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        #   FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+        #   FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
