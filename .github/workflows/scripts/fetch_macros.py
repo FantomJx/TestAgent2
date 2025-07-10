@@ -31,7 +31,7 @@ def initialize_firebase():
                     "type": "service_account",
                     "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
                     "private_key_id": "92386836308c1cb6294effbea156da5ff8e63434",
-                    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
+                    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', ''),
                     "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
                     "client_id": "109866713813341583021",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -39,17 +39,6 @@ def initialize_firebase():
                     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                     "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40pr-agent-21ba8.iam.gserviceaccount.com"
                 }
-        
-        # Debug: Print environment variables and service account info
-        print("=== DEBUG: Environment Variables ===")
-        print(f"FIREBASE_PROJECT_ID: {os.environ.get('FIREBASE_PROJECT_ID')}")
-        print(f"FIREBASE_PRIVATE_KEY: {os.environ.get('FIREBASE_PRIVATE_KEY')}")
-        print(f"FIREBASE_CLIENT_EMAIL: {os.environ.get('FIREBASE_CLIENT_EMAIL')}")
-        
-        print("\n=== DEBUG: Service Account Info ===")
-        for key, value in service_account_info.items():
-            print(f"{key}: {value}")
-        
         cred = credentials.Certificate(service_account_info)
         firebase_admin.initialize_app(cred)
         print("Firebase initialized successfully")
