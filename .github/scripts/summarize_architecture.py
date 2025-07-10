@@ -32,7 +32,7 @@ def get_codebase_content(repository_path="."):
     code_extensions = {
         '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp',
         '.cs', '.go', '.rs', '.rb', '.php', '.swift', '.kt', '.scala', '.clj',
-        '.html', '.css', '.scss', '.sass', '.less', '.vue', '.svelte',
+        '.html', '.sass', '.less', '.vue', '.svelte',
         '.json', '.yaml', '.yml', '.toml', '.ini', '.conf', '.cfg',
         '.sql', '.md', '.txt', '.sh', '.bat', '.ps1'
     }
@@ -42,7 +42,7 @@ def get_codebase_content(repository_path="."):
         '/.git/', '/node_modules/', '/.venv/', '/venv/', '/env/', 
         '/dist/', '/build/', '/target/', '/.next/', '/.nuxt/',
         '__pycache__', '.pyc', '.class', '.o', '.obj',
-        '.log', '.tmp', '.temp', '.cache'
+        '.log', '.tmp', '.temp', '.cache', '.css'
     }
     
     # Detect important directories that should never be excluded
