@@ -5,28 +5,22 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
   workflow_call:
-    # inputs:
-    #   username:
-    #     required: false
-    #     type: string
-    # secrets:
-    #   PAT_TOKEN:
-    #     required: true
-    #   ANTHROPIC_API_KEY:
-    #     required: true
-    #   OPENAI_API_KEY:
-    #     required: true
+    inputs:
+      username:
+        required: false
+        type: string
+    secrets:
+      PAT_TOKEN:
+        required: true
+      ANTHROPIC_API_KEY:
+        required: true
+      OPENAI_API_KEY:
+        required: true
 
 jobs:
   claude-review:
     runs-on: ubuntu-latest
-    timeout-minutes: 1
-
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      # Retry the job once if it fails
-      retry: 1
+    timeout-minutes: 3
     permissions:
       pull-requests: write
       contents: read
