@@ -4,6 +4,10 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Claude Code Review"]
+    types:
+      - completed
 
 
 jobs:
@@ -13,16 +17,50 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+      actions: read
     
     # Skip if PR is from a fork to avoid secrets exposure or if it's a draft
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false
+    # For workflow_run events, only proceed if the previous run was cancelled due to timeout
+    if: |
+      (github.event_name == 'pull_request_target' && 
+       github.event.pull_request.head.repo.full_name == github.repository && 
+       github.event.pull_request.draft == false) ||
+      (github.event_name == 'workflow_run' && 
+       github.event.workflow_run.conclusion == 'cancelled' &&
+       contains(github.event.workflow_run.name, 'Claude Code Review'))
 
     steps:
+      - name: Get PR information for workflow_run event
+        if: github.event_name == 'workflow_run'
+        id: get-pr-info
+        run: |
+          # Get the PR number from the workflow run event
+          PR_NUMBER=$(echo '${{ toJSON(github.event.workflow_run) }}' | jq -r '.pull_requests[0].number // empty')
+          
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR found in workflow_run event, exiting"
+            exit 1
+          fi
+          
+          # Get PR details using GitHub API
+          PR_DATA=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
+          
+          # Extract necessary information
+          HEAD_SHA=$(echo "$PR_DATA" | jq -r '.head.sha')
+          BASE_SHA=$(echo "$PR_DATA" | jq -r '.base.sha')
+          PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
+          PR_BODY=$(echo "$PR_DATA" | jq -r '.body // ""')
+          PR_AUTHOR=$(echo "$PR_DATA" | jq -r '.user.login')
+          HEAD_REPO=$(echo "$PR_DATA" | jq -r '.head.repo.full_name')
+          IS_DRAFT=$(echo "$PR_DATA" | jq -r '.draft')
+
       - name: Checkout full repo history
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.head_sha || github.event.pull_request.head.sha }}
 
       - name: Set up Python and install dependencies
         run: |
@@ -48,7 +86,7 @@ jobs:
         id: parse-pr-macros
         continue-on-error: true
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BODY: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_body || github.event.pull_request.body }}
         run: |
           python3 .github/scripts/parse_pr_macros.py
 
@@ -105,8 +143,13 @@ jobs:
       - name: Generate diff between base and head (excluding workflow file)
         id: diff
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            BASE_SHA="${{ steps.get-pr-info.outputs.base_sha }}"
+            HEAD_SHA="${{ steps.get-pr-info.outputs.head_sha }}"
+          else
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          fi
 
           git fetch origin "$BASE_SHA" "$HEAD_SHA"
 
@@ -123,20 +166,33 @@ jobs:
           IMPORTANT_CHANGE_MARKERS="${{ steps.resolve-macros.outputs.important_change_markers }}"
           IMPORTANT_CHANGE_LABELS="${{ steps.resolve-macros.outputs.important_change_labels }}"
           
+          # Get PR title and labels based on event type
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            PR_TITLE="${{ steps.get-pr-info.outputs.pr_title }}"
+            # For workflow_run, we need to fetch labels via API
+            PR_LABELS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/${{ steps.get-pr-info.outputs.pr_number }}" | \
+              jq -r '.labels[].name' | tr '\n' ',' | sed 's/,$//')
+            PR_BODY="${{ steps.get-pr-info.outputs.pr_body }}"
+          else
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            PR_LABELS=$(echo '${{ toJSON(github.event.pull_request.labels.*.name) }}' | jq -r 'join(",")')
+            PR_BODY="${{ github.event.pull_request.body }}"
+          fi
+          
           # Check for important change markers in title
           HAS_IMPORTANT_TITLE=false
-          if echo '${{ github.event.pull_request.title }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_MARKERS" | sed 's/,/|/g')"; then
+          if echo "$PR_TITLE" | grep -q -E "$(echo "$IMPORTANT_CHANGE_MARKERS" | sed 's/,/|/g')"; then
             HAS_IMPORTANT_TITLE=true
           fi
           
           # Check for important change labels
           HAS_IMPORTANT_LABEL=false
-          if echo '${{ toJSON(github.event.pull_request.labels.*.name) }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_LABELS" | sed 's/,/|/g')"; then
+          if echo "$PR_LABELS" | grep -q -E "$(echo "$IMPORTANT_CHANGE_LABELS" | sed 's/,/|/g')"; then
             HAS_IMPORTANT_LABEL=true
           fi
           
           # Check PR description for checkboxes
-          PR_BODY='${{ github.event.pull_request.body }}'
           
           # Check for "Do you have important changes?" checkbox marked with X
           HAS_IMPORTANT_CHECKBOX=false
@@ -169,12 +225,12 @@ jobs:
         env:
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_number || github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_SHA: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.head_sha || github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.base_sha || github.event.pull_request.base.sha }}
+          PR_TITLE: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_title || github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_author || github.event.pull_request.user.login }}
         run: |
           python3 .github/scripts/track_architecture.py
 
@@ -186,7 +242,7 @@ jobs:
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
           SHOULD_SUMMARIZE: 'true'
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_number || github.event.pull_request.number }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
         run: |
           python3 .github/scripts/summarize_architecture.py
@@ -197,7 +253,7 @@ jobs:
         env:
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_number || github.event.pull_request.number }}
         run: |
           python3 .github/scripts/fetch_firebase_context.py
 
@@ -253,7 +309,7 @@ jobs:
           ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
         run: |
           echo "Starting AI review with 2-minute delay to test timeout..."
-          sleep 120
+            sleep 120
           python3 .github/scripts/ai_review.py 2>/tmp/ai_review_debug.log
 
       - name: Display AI costs so far
@@ -268,8 +324,8 @@ jobs:
           MODEL_COMMENT: ${{ steps.choose-model.outputs.model_comment }}
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_number || github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.head_sha || github.event.pull_request.head.sha }}
         run: |
           python3 .github/scripts/post_comments.py
 
