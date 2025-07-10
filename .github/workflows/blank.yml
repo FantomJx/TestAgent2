@@ -262,6 +262,7 @@ jobs:
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
