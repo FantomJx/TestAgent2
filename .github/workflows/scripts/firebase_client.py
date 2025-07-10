@@ -12,19 +12,13 @@ class FirebaseClient:
     def __init__(self, project_name="test"):
         try:
             if not firebase_admin._apps:
-                # Build service account info from environment variables (GitHub secrets)
-                service_account_info = {
-                    "type": "service_account",
-                    "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
-                    "private_key_id": "92386836308c1cb6294effbea156da5ff8e63434",
-                    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
-                    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
-                    "client_id": "109866713813341583021",
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40pr-agent-21ba8.iam.gserviceaccount.com"
-                }
+                # Get service account JSON from environment variable
+                service_account_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
+                if not service_account_json:
+                    raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON environment variable is required")
+                
+                # Parse the JSON string
+                service_account_info = json.loads(service_account_json)
                 cred = credentials.Certificate(service_account_info)
                 firebase_admin.initialize_app(cred)
             self.db = firestore.client()

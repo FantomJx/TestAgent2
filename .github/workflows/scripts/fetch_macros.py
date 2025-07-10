@@ -15,30 +15,14 @@ except Exception as e:
 def initialize_firebase():
     """Initialize Firebase Admin SDK using service account JSON file."""
     try:
-        # Required environment variables
-        required_env_vars = [
-            "FIREBASE_PROJECT_ID",
-            "FIREBASE_PRIVATE_KEY",
-            "FIREBASE_CLIENT_EMAIL"
-        ]
-        missing_vars = [var for var in required_env_vars if not os.environ.get(var)]
-        if missing_vars:
-            print(f"Error: Missing required environment variables: {', '.join(missing_vars)}")
+        # Check for required environment variable
+        service_account_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
+        if not service_account_json:
+            print("Error: Missing required environment variable: FIREBASE_SERVICE_ACCOUNT_JSON")
             return False
 
-        # Build service account info from environment variables (GitHub secrets)
-        service_account_info = {
-                    "type": "service_account",
-                    "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
-                    "private_key_id": "92386836308c1cb6294effbea156da5ff8e63434",
-                    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', ''),
-                    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
-                    "client_id": "109866713813341583021",
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40pr-agent-21ba8.iam.gserviceaccount.com"
-                }
+        # Parse the JSON string
+        service_account_info = json.loads(service_account_json)
         cred = credentials.Certificate(service_account_info)
         firebase_admin.initialize_app(cred)
         print("Firebase initialized successfully")

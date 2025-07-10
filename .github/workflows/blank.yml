@@ -16,11 +16,7 @@ on:
         required: true
       OPENAI_API_KEY:
         required: true
-      FIREBASE_PROJECT_ID:
-        required: true
-      FIREBASE_PRIVATE_KEY:
-        required: true
-      FIREBASE_CLIENT_EMAIL:
+      FIREBASE_SERVICE_ACCOUNT_JSON:
         required: true
 
 jobs:
@@ -76,9 +72,7 @@ jobs:
         id: fetch-macros
         # continue-on-error: true  # Temporarily disabled to see actual errors
         env:
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
@@ -87,9 +81,7 @@ jobs:
           command: |
             echo "Starting Firebase macro fetch..."
             echo "Checking environment variables..."
-            echo "FIREBASE_PROJECT_ID is set: $([[ -n "$FIREBASE_PROJECT_ID" ]] && echo "YES" || echo "NO")"
-            echo "FIREBASE_PRIVATE_KEY is set: $([[ -n "$FIREBASE_PRIVATE_KEY" ]] && echo "YES" || echo "NO")"
-            echo "FIREBASE_CLIENT_EMAIL is set: $([[ -n "$FIREBASE_CLIENT_EMAIL" ]] && echo "YES" || echo "NO")"
+            echo "FIREBASE_SERVICE_ACCOUNT_JSON is set: $([[ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]] && echo "YES" || echo "NO")"
             echo "Running fetch_macros.py..."
             python3 .github/workflows/scripts/fetch_macros.py
             echo "Firebase macro fetch completed."
@@ -236,9 +228,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
