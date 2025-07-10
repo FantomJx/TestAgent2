@@ -58,6 +58,19 @@ jobs:
       #   run: |
       #     python3 .github/scripts/test_cost_tracking.py
 
+      - name: Parse macros from PR description
+        id: parse-pr-macros
+        continue-on-error: true
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 2
+          retry_on: both         
+          command: |
+            python3 .github/workflows/scripts/parse_pr_macros.py
+
       - name: Fetch configuration macros from Firebase
         id: fetch-macros
         continue-on-error: true
@@ -73,19 +86,6 @@ jobs:
           command: |
             python3 .github/workflows/scripts/fetch_macros.py
 
-      - name: Parse macros from PR description
-        id: parse-pr-macros
-        continue-on-error: true
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 1
-          max_attempts: 2
-          retry_on: both         
-          command: |
-            python3 .github/workflows/scripts/parse_pr_macros.py
-
       - name: Resolve final macro configuration
         id: resolve-macros
         uses: nick-invision/retry@v2
@@ -99,19 +99,23 @@ jobs:
             # LINE_THRESHOLD
             if [ -n "${{ steps.parse-pr-macros.outputs.pr_line_threshold }}" ]; then
               LINE_THRESHOLD="${{ steps.parse-pr-macros.outputs.pr_line_threshold }}"
-            elif [ -n "${{ steps.fetch-macros.outputs.line_threshold }}" ]; then
-              LINE_THRESHOLD="${{ steps.fetch-macros.outputs.line_threshold }}"
             else
-              LINE_THRESHOLD="200"
+              if [ -n "${{ steps.fetch-macros.outputs.line_threshold }}" ]; then
+                LINE_THRESHOLD="${{ steps.fetch-macros.outputs.line_threshold }}"
+              else
+                LINE_THRESHOLD="200"
+              fi
             fi
 
             # CHANGES_THRESHOLD
             if [ -n "${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}" ]; then
               CHANGES_THRESHOLD="${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}"
-            elif [ -n "${{ steps.fetch-macros.outputs.changes_threshold }}" ]; then
-              CHANGES_THRESHOLD="${{ steps.fetch-macros.outputs.changes_threshold }}"
             else
-              CHANGES_THRESHOLD="5"
+              if [ -n "${{ steps.fetch-macros.outputs.changes_threshold }}" ]; then
+                CHANGES_THRESHOLD="${{ steps.fetch-macros.outputs.changes_threshold }}"
+              else
+                CHANGES_THRESHOLD="5"
+              fi
             fi
 
             # IMPORTANT_CHANGE_MARKERS (only from Firebase or defaults - not configurable in PR)
