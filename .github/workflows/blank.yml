@@ -322,8 +322,6 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            echo "Starting AI review with 2-minute delay to test timeout..."
-            sleep 180
             python3 .github/scripts/ai_review.py 2>/tmp/ai_review_debug.log
 
       - name: Display AI costs so far
