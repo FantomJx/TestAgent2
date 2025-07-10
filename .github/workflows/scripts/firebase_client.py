@@ -6,62 +6,31 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 import base64
 import logging
-from fetch_macros import fetch_macros
+from fetch_macros import initialize_firebase, fetch_macros
+
+# Configuration - Firebase service account file
+FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent-21ba8-firebase-adminsdk-fbsvc-9238683630.json"
 
 class FirebaseClient:
-    def __init__(self, project_name="test"):
+    def __init__(self, service_account_path=None, project_name="test"):
         try:
             if not firebase_admin._apps:
-                # Get service account JSON from environment variable
-                service_account_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
-                if not service_account_json:
-                    raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON environment variable is required")
+                # Use provided path or default to the JSON file
+                if not service_account_path:
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    github_dir = os.path.dirname(script_dir)
+                    service_account_path = os.path.join(github_dir, FIREBASE_SERVICE_ACCOUNT_FILE)
                 
-                # Parse the JSON string
-                try:
-                    service_account_info = json.loads(service_account_json)
-                except json.JSONDecodeError as e:
-                    raise ValueError(f"Invalid JSON in FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
-                
-                # Validate required fields
-                required_fields = ['project_id', 'private_key', 'client_email']
-                for field in required_fields:
-                    if field not in service_account_info:
-                        raise ValueError(f"Missing required field '{field}' in service account JSON")
-                
-                logging.info(f"Initializing Firebase for project: {service_account_info.get('project_id')}")
-                cred = credentials.Certificate(service_account_info)
+                if not os.path.exists(service_account_path):
+                    raise FileNotFoundError(f"Firebase credentials file not found at: {service_account_path}")
+                    
+                cred = credentials.Certificate(service_account_path)
                 firebase_admin.initialize_app(cred)
-                
+            
             self.db = firestore.client()
             self.project_name = project_name
-            logging.info(f"Firebase client initialized successfully for project: {project_name}")
         except Exception as e:
             logging.error(f"Failed to initialize Firebase: {str(e)}")
-            logging.error(f"Exception type: {type(e).__name__}")
-            raise
-    
-    def _execute_with_timeout(self, func, timeout=30):
-        """Execute a function with timeout"""
-        import signal
-        
-        def timeout_handler(signum, frame):
-            raise TimeoutError(f"Firebase operation timed out after {timeout} seconds")
-        
-        # Set timeout
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(timeout)
-        
-        try:
-            result = func()
-            signal.alarm(0)  # Cancel the alarm
-            return result
-        except TimeoutError:
-            logging.error(f"Firebase operation timed out after {timeout} seconds")
-            raise
-        except Exception as e:
-            signal.alarm(0)  # Cancel the alarm
-            logging.error(f"Firebase operation failed: {str(e)}")
             raise
     
     def get_architecture_summary(self, repository):
@@ -70,19 +39,16 @@ class FirebaseClient:
             return None
             
         try:
-            def _get_summary():
-                # Use project_name as the main collection path
-                doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
-                doc = doc_ref.get()
-                if doc.exists:
-                    data = doc.to_dict()
-                    print(f"Found existing architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
-                    return data
-                else:
-                    print(f"No architecture summary found for {repository} in project {self.project_name}", file=sys.stderr)
-                    return None
-            
-            return self._execute_with_timeout(_get_summary)
+            # Use project_name as the main collection path
+            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
+            doc = doc_ref.get()
+            if doc.exists:
+                data = doc.to_dict()
+                print(f"Found existing architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
+                return data
+            else:
+                print(f"No architecture summary found for {repository} in project {self.project_name}", file=sys.stderr)
+                return None
         except Exception as e:
             logging.error(f"Error fetching architecture summary: {str(e)}")
             return None
@@ -90,18 +56,17 @@ class FirebaseClient:
     def update_architecture_summary(self, repository, summary, changes_count=0):
         """Update the architecture summary for a repository"""
         try:
-            def _update_summary():
-                doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
-                data = {
-                    'repository': repository,
-                    'summary': summary,
-                    'last_updated': datetime.utcnow(),
-                    'changes_count': changes_count
-                }
-                doc_ref.set(data, merge=True)
-                print(f"Successfully updated architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
+            doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
+            data = {
+                'repository': repository,
+                'summary': summary,
+                'last_updated': datetime.utcnow(),
+                'changes_count': changes_count
+            }
             
-            self._execute_with_timeout(_update_summary)
+            doc_ref.set(data, merge=True)
+
+
         except Exception as e:
             logging.error(f"Error updating architecture summary: {str(e)}")
             raise
