@@ -51,7 +51,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            cd scripts && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
+            cd .github/workflows/scripts && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
 
       # Uncomment below to test cost tracking functionality
       # - name: Test cost tracking (optional)
@@ -67,7 +67,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            python3 scripts/fetch_macros.py
+            python3 .github/workflows/scripts/fetch_macros.py
 
       - name: Parse macros from PR description
         id: parse-pr-macros
@@ -80,7 +80,7 @@ jobs:
           max_attempts: 2
           retry_on: both         
           command: |
-            python3 scripts/parse_pr_macros.py
+            python3 .github/workflows/scripts/parse_pr_macros.py
 
       - name: Resolve final macro configuration
         id: resolve-macros
@@ -226,7 +226,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            python3 scripts/track_architecture.py
+            python3 .github/workflows/scripts/track_architecture.py
 
       - name: Summarize architecture if needed
         if: steps.check-important.outputs.is_important_change == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
@@ -244,7 +244,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            python3 scripts/summarize_architecture.py
+            python3 .github/workflows/scripts/summarize_architecture.py
 
       - name: Fetch architecture context from Firebase
         id: fetch-context
@@ -259,7 +259,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            python3 scripts/fetch_firebase_context.py
+            python3 .github/workflows/scripts/fetch_firebase_context.py
 
       - name: Choose model based on line count and labels
         id: choose-model
@@ -322,7 +322,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            python3 scripts/ai_review.py 2>/tmp/ai_review_debug.log
+            python3 .github/workflows/scripts/ai_review.py 2>/tmp/ai_review_debug.log
 
       - name: Display AI costs so far
         if: always()
@@ -333,7 +333,7 @@ jobs:
           retry_on: both
           command: |
             echo "=== AI COST CHECKPOINT AFTER REVIEW ==="
-            python3 scripts/display_costs.py
+            python3 .github/workflows/scripts/display_costs.py
 
       - name: Post line-by-line comments on PR
         env:
@@ -349,7 +349,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            python3 scripts/post_comments.py
+            python3 .github/workflows/scripts/post_comments.py
 
       - name: Upload AI response as artifact
         uses: actions/upload-artifact@v4
@@ -374,4 +374,4 @@ jobs:
           retry_on: both
           command: |
             echo "=== FINAL AI COST SUMMARY ==="
-            cd scripts && python3 -c "from cost_tracker import finalize_cost_tracking; finalize_cost_tracking()"
+            cd .github/workflows/scripts && python3 -c "from cost_tracker import finalize_cost_tracking; finalize_cost_tracking()"
