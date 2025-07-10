@@ -41,8 +41,15 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            python3 -m pip install --upgrade pip > /dev/null 2>&1
-            pip install firebase-admin anthropic openai > /dev/null 2>&1
+            echo "Upgrading pip..."
+            python3 -m pip install --upgrade pip
+            echo "Installing dependencies..."
+            pip install firebase-admin anthropic openai
+            echo "Dependencies installed. Checking installations..."
+            pip list | grep -E "(firebase|anthropic|openai)"
+            echo "Python version and path:"
+            python3 --version
+            which python3
 
       - name: Initialize AI cost tracking
         uses: nick-invision/retry@v2
@@ -71,9 +78,25 @@ jobs:
           command: |
             python3 .github/workflows/scripts/parse_pr_macros.py
 
+      - name: Test Python script execution
+        id: test-execution
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 2
+          retry_on: both
+          command: |
+            echo "Testing Python script execution..."
+            echo "Current directory: $(pwd)"
+            echo "Contents of .github/workflows/scripts/:"
+            ls -la .github/workflows/scripts/
+            echo "Testing basic script execution..."
+            python3 .github/workflows/scripts/test_execution.py
+            echo "Test script completed."
+
       - name: Fetch configuration macros from Firebase
         id: fetch-macros
-        continue-on-error: true
+        # continue-on-error: true  # Temporarily disabled to see actual errors
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
@@ -84,7 +107,14 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
+            echo "Starting Firebase macro fetch..."
+            echo "Checking environment variables..."
+            echo "FIREBASE_PROJECT_ID is set: $([[ -n "$FIREBASE_PROJECT_ID" ]] && echo "YES" || echo "NO")"
+            echo "FIREBASE_PRIVATE_KEY is set: $([[ -n "$FIREBASE_PRIVATE_KEY" ]] && echo "YES" || echo "NO")"
+            echo "FIREBASE_CLIENT_EMAIL is set: $([[ -n "$FIREBASE_CLIENT_EMAIL" ]] && echo "YES" || echo "NO")"
+            echo "Running fetch_macros.py..."
             python3 .github/workflows/scripts/fetch_macros.py
+            echo "Firebase macro fetch completed."
 
       - name: Resolve final macro configuration
         id: resolve-macros
