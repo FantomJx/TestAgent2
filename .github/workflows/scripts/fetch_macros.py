@@ -3,10 +3,8 @@ import sys
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
-import time  # Added for timing measurements
 
-# Configuration - Firebase service account file
-FIREBASE_SERVICE_ACCOUNT_FILE = "pr-agent-21ba8-firebase-adminsdk-fbsvc-95c716d6e2.json"
+print(f"DEBUG: fetch_macros.py loaded, __name__={__name__}")
 
 def initialize_firebase():
     """Initialize Firebase Admin SDK using service account JSON file."""
@@ -46,19 +44,12 @@ def initialize_firebase():
 def fetch_macros():
     """Fetch macro configuration values from Firestore."""
     try:
-        # Get Firestore client with timing
-        print("Connecting to Firestore...")
-        start_time = time.time()
+        # Get Firestore client
         db = firestore.client()
-        print(f"Connected to Firestore in {time.time() - start_time:.2f}s")
         
-        # Get reference to macros document and fetch with timing and timeout
+        # Get reference to macros document
         doc_ref = db.collection('macros').document('macros')
-        print("Retrieving macros document...")
-        start_time = time.time()
-        doc = doc_ref.get(timeout=10)
-        elapsed = time.time() - start_time
-        print(f"Document fetch elapsed time: {elapsed:.2f}s")
+        doc = doc_ref.get()
         
         if not doc.exists:
             print("No macros document found in Firestore")
@@ -91,7 +82,6 @@ def fetch_macros():
         return None
 
 def main():
-    """Main function."""
     print("Fetching macro configuration from Firebase...")
     
     # Initialize Firebase
@@ -107,4 +97,5 @@ def main():
     print("Macro fetch completed successfully")
 
 if __name__ == "__main__":
+    print("DEBUG: __main__ branch starting main()")
     main()
