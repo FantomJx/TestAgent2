@@ -17,15 +17,19 @@ on:
       OPENAI_API_KEY:
         required: true
 
-
 jobs:
   claude-review:
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      # Retry the job once if it fails
+      retry: 1
     permissions:
       pull-requests: write
       contents: read
-    
+
     # Skip if PR is from a fork to avoid secrets exposure or if it's a draft
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false
 
@@ -68,7 +72,7 @@ jobs:
         id: resolve-macros
         run: |
           # Priority: PR description > Firebase > defaults
-          
+
           # LINE_THRESHOLD
           if [ -n "${{ steps.parse-pr-macros.outputs.pr_line_threshold }}" ]; then
             LINE_THRESHOLD="${{ steps.parse-pr-macros.outputs.pr_line_threshold }}"
@@ -77,7 +81,7 @@ jobs:
           else
             LINE_THRESHOLD="200"
           fi
-          
+
           # CHANGES_THRESHOLD
           if [ -n "${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}" ]; then
             CHANGES_THRESHOLD="${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}"
@@ -86,27 +90,27 @@ jobs:
           else
             CHANGES_THRESHOLD="5"
           fi
-          
+
           # IMPORTANT_CHANGE_MARKERS (only from Firebase or defaults - not configurable in PR)
           if [ -n "${{ steps.fetch-macros.outputs.important_change_markers }}" ]; then
             IMPORTANT_CHANGE_MARKERS="${{ steps.fetch-macros.outputs.important_change_markers }}"
           else
             IMPORTANT_CHANGE_MARKERS="#IMPORTANT-CHANGE,#IMPORTANT-CHANGES"
           fi
-          
+
           # IMPORTANT_CHANGE_LABELS (only from Firebase or defaults - not configurable in PR)
           if [ -n "${{ steps.fetch-macros.outputs.important_change_labels }}" ]; then
             IMPORTANT_CHANGE_LABELS="${{ steps.fetch-macros.outputs.important_change_labels }}"
           else
             IMPORTANT_CHANGE_LABELS="important change,important changes"
           fi
-          
+
           # Set outputs
           echo "line_threshold=$LINE_THRESHOLD" >> "$GITHUB_OUTPUT"
           echo "changes_threshold=$CHANGES_THRESHOLD" >> "$GITHUB_OUTPUT"
           echo "important_change_markers=$IMPORTANT_CHANGE_MARKERS" >> "$GITHUB_OUTPUT"
           echo "important_change_labels=$IMPORTANT_CHANGE_LABELS" >> "$GITHUB_OUTPUT"
-          
+
           # Log the resolved values
           echo "Resolved macro configuration:"
           echo "  LINE_THRESHOLD: $LINE_THRESHOLD"
@@ -134,40 +138,40 @@ jobs:
           # Get macro values from resolved macros
           IMPORTANT_CHANGE_MARKERS="${{ steps.resolve-macros.outputs.important_change_markers }}"
           IMPORTANT_CHANGE_LABELS="${{ steps.resolve-macros.outputs.important_change_labels }}"
-          
+
           # Check for important change markers in title
           HAS_IMPORTANT_TITLE=false
           if echo '${{ github.event.pull_request.title }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_MARKERS" | sed 's/,/|/g')"; then
             HAS_IMPORTANT_TITLE=true
           fi
-          
+
           # Check for important change labels
           HAS_IMPORTANT_LABEL=false
           if echo '${{ toJSON(github.event.pull_request.labels.*.name) }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_LABELS" | sed 's/,/|/g')"; then
             HAS_IMPORTANT_LABEL=true
           fi
-          
+
           # Check PR description for checkboxes
           PR_BODY='${{ github.event.pull_request.body }}'
-          
+
           # Check for "Do you have important changes?" checkbox marked with X
           HAS_IMPORTANT_CHECKBOX=false
           if echo "$PR_BODY" | grep -q -E '\[X\].*[Dd]o you have important changes'; then
             HAS_IMPORTANT_CHECKBOX=true
           fi
-          
+
           # Check for "Do you want to explicitly use Claude Sonnet 4?" checkbox marked with X
           USE_CLAUDE_CHECKBOX=false
           if echo "$PR_BODY" | grep -q -E '\[X\].*[Dd]o you want to explicitly use Claude Sonnet 4'; then
             USE_CLAUDE_CHECKBOX=true
           fi
-          
+
           # Determine if this is an important change
           IS_IMPORTANT_CHANGE=false
           if [ "$HAS_IMPORTANT_TITLE" = "true" ] || [ "$HAS_IMPORTANT_LABEL" = "true" ] || [ "$HAS_IMPORTANT_CHECKBOX" = "true" ]; then
             IS_IMPORTANT_CHANGE=true
           fi
-          
+
           echo "has_important_title=$HAS_IMPORTANT_TITLE" >> "$GITHUB_OUTPUT"
           echo "has_important_label=$HAS_IMPORTANT_LABEL" >> "$GITHUB_OUTPUT"
           echo "has_important_checkbox=$HAS_IMPORTANT_CHECKBOX" >> "$GITHUB_OUTPUT"
@@ -197,12 +201,12 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
-          SHOULD_SUMMARIZE: 'true'
+          SHOULD_SUMMARIZE: "true"
           PR_NUMBER: ${{ github.event.pull_request.number }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
         run: |
           python3 .github/scripts/summarize_architecture.py
-          
+
       - name: Fetch architecture context from Firebase
         id: fetch-context
         continue-on-error: true
@@ -222,14 +226,14 @@ jobs:
           HAS_IMPORTANT_TITLE=${{ steps.check-important.outputs.has_important_title }}
           HAS_IMPORTANT_CHECKBOX=${{ steps.check-important.outputs.has_important_checkbox }}
           USE_CLAUDE_CHECKBOX=${{ steps.check-important.outputs.use_claude_checkbox }}
-          
+
           # Set outputs for use in next steps
           echo "has_important_label=$HAS_IMPORTANT_LABEL" >> "$GITHUB_OUTPUT"
           echo "has_important_title=$HAS_IMPORTANT_TITLE" >> "$GITHUB_OUTPUT"
           echo "has_important_checkbox=$HAS_IMPORTANT_CHECKBOX" >> "$GITHUB_OUTPUT"
           echo "use_claude_checkbox=$USE_CLAUDE_CHECKBOX" >> "$GITHUB_OUTPUT"
           echo "line_threshold=$THRESHOLD" >> "$GITHUB_OUTPUT"
-          
+
           # Model selection logic:
           # 1. If explicit Claude checkbox is checked -> use Claude
           # 2. If has important label, title marker, or important checkbox -> use Claude
