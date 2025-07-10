@@ -16,6 +16,12 @@ on:
         required: true
       OPENAI_API_KEY:
         required: true
+      FIREBASE_PROJECT_ID:
+        required: true
+      FIREBASE_PRIVATE_KEY:
+        required: true
+      FIREBASE_CLIENT_EMAIL:
+        required: true
 
 jobs:
   claude-review:
