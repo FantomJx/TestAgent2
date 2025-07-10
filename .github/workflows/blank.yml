@@ -36,6 +36,31 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
 
+      - name: Download workflow scripts
+        if: github.repository != 'YOUR_USERNAME/TestAgent2'  # Replace with your actual repo
+        run: |
+          mkdir -p .github/workflows
+          # Download all required Python files from the source repository
+          SCRIPTS=(
+            "cost_tracker.py"
+            "fetch_macros.py"
+            "parse_pr_macros.py"
+            "track_architecture.py"
+            "summarize_architecture.py"
+            "fetch_firebase_context.py"
+            "ai_review.py"
+            "post_comments.py"
+            "display_costs.py"
+            "firebase_client.py"
+          )
+          
+          for script in "${SCRIPTS[@]}"; do
+            curl -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+                 -H "Accept: application/vnd.github.v3.raw" \
+                 -o ".github/workflows/$script" \
+                 "https://api.github.com/repos/YOUR_USERNAME/TestAgent2/contents/.github/workflows/$script"  # Replace with your actual repo
+          done
+
       - name: Set up Python and install dependencies
         uses: nick-invision/retry@v2
         with:
@@ -46,14 +71,14 @@ jobs:
             python3 -m pip install --upgrade pip > /dev/null 2>&1
             pip install firebase-admin anthropic openai > /dev/null 2>&1
 
-      # - name: Initialize AI cost tracking
-      #   uses: nick-invision/retry@v2
-      #   with:
-      #     timeout_minutes: 1
-      #     max_attempts: 2
-      #     retry_on: both
-      #     command: |
-      #       cd .github/workflows && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
+      - name: Initialize AI cost tracking
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 2
+          retry_on: both
+          command: |
+            cd .github/workflows && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
 
       # Uncomment below to test cost tracking functionality
       # - name: Test cost tracking (optional)
