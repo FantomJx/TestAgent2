@@ -41,7 +41,7 @@ To test Docker integration locally:
 # Pull the latest agent image
 docker pull kaloyangavrilov/github-workflows:latest
 
-# Method 1: Extract to temporary directory first (Recommended)
+# Method: Extract to temporary directory first (Recommended)
 docker create --name temp-container kaloyangavrilov/github-workflows:latest
 docker cp temp-container:/app/.github ./temp-github
 docker rm temp-container
@@ -49,8 +49,11 @@ docker rm temp-container
 # Compare with your current .github directory
 diff -r .github temp-github
 
-# If you want to merge changes, copy specific files:
-cp -r temp-github/workflows/* .github/workflows/
+# To merge changes, copy only the files you want:
+mkdir -p .github/workflows
+cp temp-github/workflows/*.yml .github/workflows/
+mkdir -p .github/workflows/scripts
+cp temp-github/workflows/scripts/* .github/workflows/scripts/ 2>/dev/null || true
 rm -rf temp-github
 
 # For selective copying (recommended):
