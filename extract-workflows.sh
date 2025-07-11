@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Script to extract .github workflows from the Docker image
 # Usage: ./extract-workflows.sh [destination-directory]
 
@@ -8,19 +6,19 @@ set -e
 # Default destination directory
 DEST_DIR="${1:-.github}"
 
-echo "🚀 Extracting .github workflows from kaloyangavrilov/github-workflows:latest"
-echo "📁 Destination: $DEST_DIR"
+echo "Extracting .github workflows from kaloyangavrilov/github-workflows:latest"
+echo "Destination: $DEST_DIR"
 
 # Create temporary container
-echo "📦 Creating temporary container..."
+echo "Creating temporary container..."
 CONTAINER_ID=$(docker create kaloyangavrilov/github-workflows:latest)
 
 # Copy .github folder
-echo "📋 Copying .github folder..."
+echo "Copying .github folder..."
 docker cp "$CONTAINER_ID:/app/.github" "$DEST_DIR"
 
 # Create README for extracted workflows
-echo "📝 Creating README for extracted workflows..."
+echo "Creating README for extracted workflows..."
 cat > "$DEST_DIR/README.md" << 'EOF'
 # Extracted GitHub Workflows
 
@@ -73,12 +71,12 @@ For updates and documentation, visit the original Docker image repository.
 EOF
 
 # Clean up container
-echo "🧹 Cleaning up..."
+echo "Cleaning up..."
 docker rm "$CONTAINER_ID" > /dev/null
 
-echo "✅ Successfully extracted .github workflows to: $DEST_DIR"
+echo "Successfully extracted .github workflows to: $DEST_DIR"
 echo ""
-echo "📖 Next steps:"
+echo "Next steps:"
 if [ "$DEST_DIR" = ".github" ]; then
     echo "1. You now have a .github folder ready to use in your repository"
     echo "2. Configure the required environment secrets:"
@@ -91,4 +89,4 @@ echo "   - ANTHROPIC_API_KEY"
 echo "   - OPENAI_API_KEY"
 echo "3. Customize the workflow files as needed for your project"
 echo ""
-echo "📚 For more information, see: https://hub.docker.com/r/kaloyangavrilov/github-workflows"
+echo "For more information, see: https://hub.docker.com/r/kaloyangavrilov/github-workflows"

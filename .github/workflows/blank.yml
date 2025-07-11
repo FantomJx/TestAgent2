@@ -46,33 +46,33 @@ jobs:
             python3 -m pip install --upgrade pip > /dev/null 2>&1
             pip install firebase-admin anthropic openai > /dev/null 2>&1
 
-      - name: Initialize AI cost tracking
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 1
-          max_attempts: 2
-          retry_on: both
-          command: |
-            echo "=== KURAA MI QNKOOOOOOOOOOOOOP \n\n\n\n\n\n\n\n ==="
-            cd .github/workflows && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
+      # - name: Initialize AI cost tracking
+      #   uses: nick-invision/retry@v2
+      #   with:
+      #     timeout_minutes: 1
+      #     max_attempts: 2
+      #     retry_on: both
+      #     command: |
+      #       echo "=== KURAA MI QNKOOOOOOOOOOOOOP \n\n\n\n\n\n\n\n ==="
+      #       cd .github/workflows && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
 
       # Uncomment below to test cost tracking functionality
       # - name: Test cost tracking (optional)
       #   run: |
       #     python3 .github/workflows/test_cost_tracking.py
 
-      - name: Fetch configuration macros from Firebase
-        id: fetch-macros
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 1
-          max_attempts: 2
-          retry_on: both
-          command: |
-            python3 .github/workflows/fetch_macros.py
+      # - name: Fetch configuration macros from Firebase
+      #   id: fetch-macros
+      #   continue-on-error: true
+      #   env:
+      #     FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      #   uses: nick-invision/retry@v2
+      #   with:
+      #     timeout_minutes: 1
+      #     max_attempts: 2
+      #     retry_on: both
+      #     command: |
+      #       python3 .github/workflows/fetch_macros.py
 
       - name: Parse macros from PR description
         id: parse-pr-macros
