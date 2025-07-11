@@ -41,13 +41,30 @@ To test Docker integration locally:
 # Pull the latest agent image
 docker pull kaloyangavrilov/github-workflows:latest
 
-# Extract files to see what's included
+# Method 1: Extract to temporary directory first (Recommended)
 docker create --name temp-container kaloyangavrilov/github-workflows:latest
-docker cp temp-container:/app/.github ./extracted-github
+docker cp temp-container:/app/.github ./temp-github
 docker rm temp-container
 
 # Compare with your current .github directory
-diff -r .github extracted-github
+diff -r .github temp-github
+
+# If you want to merge changes, copy specific files:
+cp -r temp-github/workflows/* .github/workflows/
+rm -rf temp-github
+
+# For selective copying (recommended):
+cp temp-github/workflows/*.yml .github/workflows/
+cp -r temp-github/workflows/scripts .github/workflows/ 2>/dev/null || true
+cp -r temp-github/workflows/actions .github/workflows/ 2>/dev/null || true
+
+
+# Method 2: Backup existing .github first
+mv .github .github-backup
+docker create --name temp-container kaloyangavrilov/github-workflows:latest
+docker cp temp-container:/app/.github ./.github
+docker rm temp-container
+# Then manually merge files from .github-backup if needed
 ```
 
 ## Firebase Configuration
