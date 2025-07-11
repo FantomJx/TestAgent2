@@ -5,6 +5,7 @@ import time
 import sys
 from datetime import datetime
 from firebase_client import FirebaseClient
+from config import PROJECT_NAME
 
 def retry_with_backoff(func, max_retries=3, base_delay=1):
     """Retry function with exponential backoff"""
@@ -26,12 +27,11 @@ def retry_with_backoff(func, max_retries=3, base_delay=1):
 
 def create_empty_context():
     """Create empty context for fallback"""
-    project_name = "test"  # Hardcoded project name
     empty_context = {
         'architecture_summary': None,
         'recent_changes': [],
         'repository': os.environ.get('REPOSITORY', 'unknown'),
-        'project_name': project_name,
+        'project_name': PROJECT_NAME,
         'status': 'fallback'
     }
     context_json = json.dumps(empty_context)
@@ -56,7 +56,6 @@ def read_local_architecture_summary():
 
 def main():
     repository = os.environ.get('REPOSITORY')
-    project_name = "test"  # Hardcoded project name
     
     if not repository:
         print("Error: REPOSITORY environment variable not set", file=sys.stderr)
@@ -65,14 +64,14 @@ def main():
     
     try:
         def fetch_firebase_data():
-            firebase_client = FirebaseClient(project_name=project_name)
+            firebase_client = FirebaseClient()
             
             # Get current architecture summary
             architecture_summary = firebase_client.get_architecture_summary(repository)
             
             # If no architecture summary found, create one from local file
             if not architecture_summary:
-                print(f"No architecture summary found for {repository} in project {project_name}", file=sys.stderr)
+                print(f"No architecture summary found for {repository} in project {PROJECT_NAME}", file=sys.stderr)
                 local_summary = read_local_architecture_summary()
                 if local_summary:
                     print(f"Creating architecture summary for {repository} from local file", file=sys.stderr)
@@ -98,7 +97,7 @@ def main():
                 'architecture_summary': architecture_summary,
                 # 'recent_changes': recent_changes,
                 'repository': repository,
-                'project_name': project_name,
+                'project_name': PROJECT_NAME,
                 'status': 'success'
             }
         

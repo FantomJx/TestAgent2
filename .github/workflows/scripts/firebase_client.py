@@ -7,9 +7,10 @@ from datetime import datetime
 import base64
 import logging
 from fetch_macros import initialize_firebase, fetch_macros
+from config import PROJECT_NAME
 
 class FirebaseClient:
-    def __init__(self, service_account_json=None, project_name="test"):
+    def __init__(self, service_account_json=None, project_name=None):
         try:
             if not firebase_admin._apps:
                 # Use provided JSON string or get from environment variable
@@ -29,7 +30,8 @@ class FirebaseClient:
                 firebase_admin.initialize_app(cred)
             
             self.db = firestore.client()
-            self.project_name = project_name
+            # Use the provided project name or fall back to the global config
+            self.project_name = project_name if project_name is not None else PROJECT_NAME
         except Exception as e:
             logging.error(f"Failed to initialize Firebase: {str(e)}")
             raise

@@ -1,6 +1,15 @@
 # Repository Setup Guide
 
-This guide will walk you through setting up this repository with AI-powered code review workflows, Firebase integration, and Docker-based agent updates.
+This guide will walk you through setting up this repository with AI-powered code review workflows, Firebase integration, and Docker### 4. Branch Protection (Optional but Recommended)
+
+1. Go to Settings → Branches
+2. Add rule for main branch
+3. Enable "Require status checks to pass before merging"
+4. Select the AI code review workflow
+
+## Testing the Setup
+
+### 1. Test Docker Image Monitoringnt updates.
 
 ## Prerequisites
 
@@ -72,11 +81,12 @@ service cloud.firestore {
 
 ### 3. Initialize Firebase Collections
 
-The system expects these Firestore collections:
+The system expects these Firestore collections (where `PROJECT_NAME` is the value from the `.github/workflows/scripts/config.py` file, default is "test"):
 
-- `test/architecture_summaries/summaries/{repo}` - Architecture summaries
-- `test/architecture_changes/changes` - Change tracking
-- `test/docker_images/digests` - Docker image version tracking
+- `PROJECT_NAME/architecture_summaries/summaries/{repo}` - Architecture summaries
+- `PROJECT_NAME/architecture_changes/changes` - Change tracking
+- `PROJECT_NAME/docker_images/digests` - Docker image version tracking
+- `PROJECT_NAME/macros/settings/macros` - Configuration macros
 
 ## GitHub Secrets Setup
 
@@ -85,6 +95,11 @@ Add these secrets to your repository (Settings → Secrets and variables → Act
 ### Required Secrets
 
 #### `FIREBASE_SERVICE_ACCOUNT_JSON`
+- **How to get**: Follow the steps in the Firebase Configuration section
+- **1. Go to Firebase Console → Project Settings → Service Accounts**
+- **2. Click "Generate new private key"**
+- **3. Download the JSON file**
+- **4. Copy the entire JSON content**
 - **Value**: Complete JSON content from Firebase service account file
 - **Example**:
 ```json
@@ -130,8 +145,9 @@ Add these secrets to your repository (Settings → Secrets and variables → Act
 ### 1. Verify Workflow Files
 
 Ensure these key files are present in `.github/workflows/`:
-- `blank.yml` - Main AI code review workflow
-- `monitor-agent-updates.yml` - Docker image monitoring
+- `ai-review.yml` - Main AI code review workflow
+- `workflow-manager.yml` - Orchestrates workflow processes
+- `agent-update.yml` - Handles Docker image updates
 
 ### 2. Configure Pull Request Template
 
@@ -141,7 +157,15 @@ The `.github/pull_request_template.md` provides checkboxes for:
 - Requesting Claude Sonnet 4 explicitly
 - Custom review thresholds
 
-### 3. Branch Protection (Optional but Recommended)
+### 3. Firebase Macros Configuration
+
+The system now supports configuration macros stored in Firebase:
+- Global default settings can be stored in Firebase
+- PR-specific macros can override Firebase defaults
+- Macros control thresholds, model selection, and other behaviors
+- Configuration is resolved at runtime with PR-specific settings taking precedence
+
+### 4. Branch Protection (Optional but Recommended)
 
 1. Go to Settings → Branches
 2. Add rule for main branch
@@ -172,6 +196,14 @@ Check Firestore console to see:
 - Architecture summaries being created
 - Docker digest tracking
 
+## Cost Tracking
+
+The system now includes AI cost tracking features:
+- Tracks API usage for both Anthropic and OpenAI models
+- Provides cost summaries at the end of each workflow run
+- Uploads cost data as artifacts for later analysis
+- Helps optimize model selection based on usage patterns
+
 ## Troubleshooting
 
 ### Common Issues
@@ -195,7 +227,7 @@ Error: Invalid API key
 ```
 Error: Docker repository 'kaloyangavrilov/github-workflows' API check failed
 ```
-**Solution**: This is usually temporary. The workflow will retry automatically.
+**Solution**: This is usually temporary. The workflow uses the nick-invision/retry action to automatically retry operations with exponential backoff.
 
 #### 4. Permission Denied
 ```
@@ -213,6 +245,15 @@ To enable detailed logging, add this to any workflow step:
   run: python3 .github/workflows/debug_firebase.py
 ```
 
+### Cost Analysis
+
+To analyze AI costs:
+```bash
+# View cost summary from workflow artifacts
+# Download the ai-response-output artifact from the workflow run
+cat /tmp/ai_cost_summary.txt
+```
+
 ### Manual Verification Commands
 
 Test Firebase connection:
@@ -224,11 +265,30 @@ python3 .github/workflows/debug_firebase.py
 
 ### Adjusting Thresholds
 
-You can customize behavior by:
+You can customize behavior through multiple methods:
 
-1. **Workflow Configuration**: Update thresholds directly in workflow files
-2. **PR Template**: Modify thresholds in backticks
-3. **Workflow Environment**: Set environment variables in workflow files
+1. **Firebase Macros**: Set global configuration defaults in Firebase
+2. **PR Template**: Override defaults with PR-specific macros in backticks
+3. **Workflow Configuration**: Update thresholds directly in workflow files
+4. **Workflow Environment**: Set environment variables in workflow files
+
+
+## Project Name Configuration
+
+The system uses a global project name that determines the Firebase collection paths. By default, this is set to "test". To change it:
+
+1. Open the file `.github/workflows/scripts/config.py`
+2. Update the `PROJECT_NAME` variable to match your desired project name:
+   ```python
+   PROJECT_NAME = "your-project-name"
+   ```
+3. This change will affect all Firebase collections:
+   - Collections will be created as `your-project-name/architecture_summaries/summaries/{repo}`
+   - Changes will be tracked in `your-project-name/architecture_changes/changes`
+   - Docker image versions will be stored in `your-project-name/docker_images/digests`
+   - Macros will be stored in `your-project-name/macros/settings/macros`
+
+Update the project name before initializing your Firebase collections to ensure all data is stored in the correct location.
 
 ### Model Selection Logic
 
@@ -237,6 +297,7 @@ The system chooses AI models based on:
 - "Important changes" labels/markers
 - Diff size vs. LINE_THRESHOLD
 - PR description checkboxes
+- Macro configurations (both global and PR-specific)
 
 ### Architecture Summary Triggers
 

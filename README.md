@@ -8,13 +8,27 @@ This system provides automated pull request review capabilities through a sophis
 
 ## Core Components
 
-### 1. GitHub Actions Orchestration (`/.github/workflows/blank.yml`)
-The primary workflow coordinates all system operations:
-- Triggers on pull request events (opened, synchronize, reopened)
+### 1. GitHub Actions Orchestration
+The system now uses three specialized workflows:
+
+**Workflow Manager (`/.github/workflows/workflow-manager.yml`)**
+- Entry point for all PR-triggered operations
+- Checks for agent update requests in PR templates
+- Orchestrates routing to appropriate workflows
+- Manages security controls and access permissions
+
+**AI Review Workflow (`/.github/workflows/ai-review.yml`)**
+- Handles the actual code review process
 - Implements security controls (blocks forks, draft PRs)
 - Manages Git operations with full history access
 - Orchestrates component execution with dependency management
 - Handles artifact collection and debugging support
+
+**Agent Update Workflow (`/.github/workflows/agent-update.yml`)**
+- Manages Docker-based workflow file updates
+- Fetches latest workflow versions from Docker image
+- Commits updated files to repository
+- Tracks image digests in Firebase for change detection
 
 ### 2. AI Review Engine (`/.github/scripts/ai_review.py`)
 Central review processing component:
@@ -32,6 +46,20 @@ Multiple components manage persistent data:
 - Manages authentication and connection handling
 - Implements data operations for architecture summaries and changes
 - Handles error recovery and retry logic
+- Stores and retrieves configuration macros for workflow customization
+- Tracks Docker image versions for automated updates
+
+**Macro System (`/.github/scripts/fetch_macros.py`)**
+- Retrieves configuration macros from Firebase
+- Parses PR-specific macros from description
+- Resolves final configuration by merging defaults with overrides
+- Provides dynamic workflow customization
+
+**Cost Tracking System**
+- Monitors API usage for both Claude and OpenAI models
+- Provides cost summaries for optimization decisions
+- Records usage patterns for future analysis
+- Uploads cost data as workflow artifacts
 
 **Architecture Tracker (`/.github/scripts/track_architecture.py`)**
 - Records significant architectural changes in Firebase
@@ -220,6 +248,22 @@ For significant architectural modifications:
 - Implements payload size monitoring and warnings
 - Optimizes prompt engineering for token usage
 - Batches operations where possible
+- Tracks API costs for usage optimization
+- Dynamically selects models based on PR complexity
+
+### Workflow Resilience
+- Uses nick-invision/retry for automatic command retries
+- Implements exponential backoff for transient failures
+- Provides detailed error diagnostics in artifacts
+- Separates concerns with specialized workflow files
+- Maintains operational state through workflow failures
+
+### Configuration Management
+- Supports global configuration macros in Firebase
+- Allows PR-specific macro overrides in PR descriptions
+- Dynamically resolves configuration at runtime
+- Provides centralized parameter management
+- Enables team-wide configuration consistency
 
 ### Firebase Optimization
 - Uses efficient Firestore queries with proper indexing

@@ -5,9 +5,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
 import logging
+from config import PROJECT_NAME
 
 class DockerImageManager:
-    def __init__(self, service_account_json=None, project_name="test"):
+    def __init__(self, service_account_json=None, project_name=None):
         try:
             if not firebase_admin._apps:
                 # Use provided JSON string or get from environment variable
@@ -27,7 +28,8 @@ class DockerImageManager:
                 firebase_admin.initialize_app(cred)
             
             self.db = firestore.client()
-            self.project_name = project_name
+            # Use the provided project name or fall back to the global config
+            self.project_name = project_name if project_name is not None else PROJECT_NAME
         except Exception as e:
             logging.error(f"Failed to initialize Firebase: {str(e)}")
             raise

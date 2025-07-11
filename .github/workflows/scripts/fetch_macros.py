@@ -3,6 +3,7 @@ import sys
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
+from config import PROJECT_NAME
 
 def initialize_firebase():
     """Initialize Firebase Admin SDK using service account JSON from environment variable."""
@@ -36,8 +37,8 @@ def fetch_macros():
         # Get Firestore client
         db = firestore.client()
         
-        # Get reference to macros document
-        doc_ref = db.collection('macros').document('macros')
+        # Get reference to macros document using the global project name
+        doc_ref = db.collection(PROJECT_NAME).document('macros').collection('settings').document('macros')
         doc = doc_ref.get()
         
         if not doc.exists:
