@@ -1,3 +1,6 @@
+## Agent Configuration
+- [ ] Load the latest agent updates (or set it up if running for the first time)
+
 ## AI Review Configuration
 Write an X to mark as yes:
 - [ ] Do you have important changes?

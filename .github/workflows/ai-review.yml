@@ -1,40 +1,89 @@
-name: Claude Code Review
+name: AI Code Review
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
-  workflow_call:
     inputs:
-      username:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: string
+      pr_head_sha:
+        description: 'PR head SHA'
+        required: true
+        type: string
+      pr_base_sha:
+        description: 'PR base SHA'
+        required: true
+        type: string
+      pr_author:
+        description: 'PR author'
+        required: true
+        type: string
+      updated_commit_sha:
+        description: 'Updated commit SHA (if agent was updated)'
         required: false
         type: string
-    secrets:
-      PAT_TOKEN:
-        required: true
-      ANTHROPIC_API_KEY:
-        required: true
-      OPENAI_API_KEY:
-        required: true
-      FIREBASE_SERVICE_ACCOUNT_JSON:
-        required: true
 
 jobs:
-  claude-review:
+  ai-review:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
       contents: read
 
-    # Skip if PR is from a fork to avoid secrets exposure or if it's a draft
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false
-
     steps:
+      - name: Get PR information
+        id: pr_info
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: parseInt('${{ github.event.inputs.pr_number }}')
+            });
+            
+            console.log('PR info retrieved:', {
+              title: pr.title,
+              body: pr.body ? pr.body.substring(0, 200) + '...' : 'No body',
+              draft: pr.draft,
+              head_repo: pr.head.repo.full_name,
+              base_repo: pr.base.repo.full_name
+            });
+            
+            // Set outputs for use in subsequent steps
+            core.setOutput('pr_title', pr.title);
+            core.setOutput('pr_body', pr.body || '');
+            core.setOutput('pr_draft', pr.draft);
+            core.setOutput('head_repo', pr.head.repo.full_name);
+            core.setOutput('base_repo', pr.base.repo.full_name);
+            core.setOutput('pr_labels', JSON.stringify(pr.labels.map(label => label.name)));
+
+      - name: Check if should skip review
+        id: should_skip
+        run: |
+          # Skip if PR is from a fork to avoid secrets exposure or if it's a draft
+          if [ "${{ steps.pr_info.outputs.head_repo }}" != "${{ steps.pr_info.outputs.base_repo }}" ]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+            echo "skip_reason=fork" >> $GITHUB_OUTPUT
+            echo "Skipping review: PR is from a fork"
+          elif [ "${{ steps.pr_info.outputs.pr_draft }}" = "true" ]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+            echo "skip_reason=draft" >> $GITHUB_OUTPUT
+            echo "Skipping review: PR is a draft"
+          else
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+            echo "Proceeding with review"
+          fi
+
       - name: Checkout full repo history
+        if: steps.should_skip.outputs.should_skip == 'false'
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
+          ref: ${{ github.event.inputs.updated_commit_sha || 'main' }}
 
       - name: Set up Python and install dependencies
         uses: nick-invision/retry@v2
@@ -46,33 +95,35 @@ jobs:
             python3 -m pip install --upgrade pip > /dev/null 2>&1
             pip install firebase-admin anthropic openai > /dev/null 2>&1
 
-      # - name: Initialize AI cost tracking
-      #   uses: nick-invision/retry@v2
-      #   with:
-      #     timeout_minutes: 1
-      #     max_attempts: 2
-      #     retry_on: both
-      #     command: |
-      #       cd .github/workflows && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
+      - name: Initialize AI cost tracking
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 2
+          retry_on: both
+          command: |
+            echo "=== KURAA MI QNKOOOOOOOOOOOOOP \n\n\n\n\n\n\n\n ==="
+            cd .github/workflows && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
 
-      # - name: Fetch configuration macros from Firebase
-      #   id: fetch-macros
-      #   continue-on-error: true
-      #   env:
-      #     FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-      #   uses: nick-invision/retry@v2
-      #   with:
-      #     timeout_minutes: 1
-      #     max_attempts: 2
-      #     retry_on: both
-      #     command: |
-      #       python3 .github/workflows/fetch_macros.py
+      - name: Fetch configuration macros from Firebase
+        id: fetch-macros
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 2
+          retry_on: both
+          command: |
+            python3 .github/workflows/fetch_macros.py
 
       - name: Parse macros from PR description
         id: parse-pr-macros
+        if: steps.should_skip.outputs.should_skip == 'false'
         continue-on-error: true
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BODY: ${{ steps.pr_info.outputs.pr_body }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
@@ -138,14 +189,15 @@ jobs:
 
       - name: Generate diff between base and head (excluding workflow file)
         id: diff
+        if: steps.should_skip.outputs.should_skip == 'false'
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 2   
           max_attempts: 2
           retry_on: both         
           command: |
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_SHA="${{ github.event.inputs.pr_base_sha }}"
+            HEAD_SHA="${{ github.event.inputs.pr_head_sha }}"
 
             git fetch origin "$BASE_SHA" "$HEAD_SHA"
 
@@ -157,6 +209,7 @@ jobs:
 
       - name: Check for important changes
         id: check-important
+        if: steps.should_skip.outputs.should_skip == 'false'
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1       
@@ -169,18 +222,18 @@ jobs:
 
             # Check for important change markers in title
             HAS_IMPORTANT_TITLE=false
-            if echo '${{ github.event.pull_request.title }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_MARKERS" | sed 's/,/|/g')"; then
+            if echo '${{ steps.pr_info.outputs.pr_title }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_MARKERS" | sed 's/,/|/g')"; then
               HAS_IMPORTANT_TITLE=true
             fi
 
             # Check for important change labels
             HAS_IMPORTANT_LABEL=false
-            if echo '${{ toJSON(github.event.pull_request.labels.*.name) }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_LABELS" | sed 's/,/|/g')"; then
+            if echo '${{ steps.pr_info.outputs.pr_labels }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_LABELS" | sed 's/,/|/g')"; then
               HAS_IMPORTANT_LABEL=true
             fi
 
             # Check PR description for checkboxes
-            PR_BODY='${{ github.event.pull_request.body }}'
+            PR_BODY='${{ steps.pr_info.outputs.pr_body }}'
 
             # Check for "Do you have important changes?" checkbox marked with X
             HAS_IMPORTANT_CHECKBOX=false
@@ -208,18 +261,18 @@ jobs:
 
       - name: Track architecture changes in Firebase
         id: track-arch
-        if: steps.check-important.outputs.is_important_change == 'true'
+        if: steps.should_skip.outputs.should_skip == 'false' && steps.check-important.outputs.is_important_change == 'true'
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
           REPOSITORY: ${{ github.repository }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_SHA: ${{ github.event.inputs.pr_head_sha }}
+          BASE_SHA: ${{ github.event.inputs.pr_base_sha }}
+          PR_TITLE: ${{ steps.pr_info.outputs.pr_title }}
+          PR_AUTHOR: ${{ github.event.inputs.pr_author }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
@@ -229,7 +282,7 @@ jobs:
             python3 .github/workflows/track_architecture.py
 
       - name: Summarize architecture if needed
-        if: steps.check-important.outputs.is_important_change == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
+        if: steps.should_skip.outputs.should_skip == 'false' && steps.check-important.outputs.is_important_change == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -237,7 +290,7 @@ jobs:
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
           SHOULD_SUMMARIZE: "true"
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
         uses: nick-invision/retry@v2
         with:
@@ -249,12 +302,13 @@ jobs:
 
       - name: Fetch architecture context from Firebase
         id: fetch-context
+        if: steps.should_skip.outputs.should_skip == 'false'
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
@@ -324,7 +378,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            python3 .github/workflows/ai_review.py
+            python3 .github/workflows/ai_review.py 2>/tmp/ai_review_debug.log
 
       - name: Display AI costs so far
         if: always()
@@ -338,13 +392,14 @@ jobs:
             python3 .github/workflows/display_costs.py
 
       - name: Post line-by-line comments on PR
+        if: steps.should_skip.outputs.should_skip == 'false'
         env:
           REVIEW_TEXT: ${{ steps.ai-review.outputs.review_b64 }}
           MODEL_COMMENT: ${{ steps.choose-model.outputs.model_comment }}
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          HEAD_SHA: ${{ github.event.inputs.pr_head_sha }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 2
