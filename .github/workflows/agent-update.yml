@@ -85,7 +85,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           # Use the Docker image manager script to get the stored digest
-          cd .github/workflows
+          cd .github/workflows/scripts
           DIGEST_OUTPUT=$(python3 docker_image_manager.py get_digest "kaloyangavrilov/github-workflows")
           echo "$DIGEST_OUTPUT" >> $GITHUB_OUTPUT
 
@@ -421,7 +421,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           # Use the Docker image manager script to update the digest
-          cd .github/workflows
+          cd .github/workflows/scripts
           python3 docker_image_manager.py update_digest "kaloyangavrilov/github-workflows" "$LATEST_DIGEST" "latest" "$GITHUB_REPOSITORY" "agent-update-workflow"
 
       - name: Check for actual changes in git
