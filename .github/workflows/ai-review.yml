@@ -431,4 +431,4 @@ jobs:
           retry_on: both
           command: |
             echo "=== FINAL AI COST SUMMARY ==="
-            cd .github/workflows && python3 -c "from cost_tracker import finalize_cost_tracking; finalize_cost_tracking()"
+            cd .github/workflows/scripts && python3 -c "from cost_tracker import finalize_cost_tracking; finalize_cost_tracking()"
