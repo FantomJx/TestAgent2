@@ -32,32 +32,20 @@ jobs:
           SHOULD_UPDATE="false"
           SHOULD_RUN_REVIEW="true"
           
-          echo "Event name: ${{ github.event_name }}"
-          echo "PR number: ${{ github.event.pull_request.number }}"
-          
           # Force check if workflow_dispatch with force_check
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force_check }}" = "true" ]; then
             SHOULD_UPDATE="true"
-            echo "Force check requested via workflow_dispatch"
           elif [ "${{ github.event_name }}" = "pull_request_target" ]; then
             # Get PR body/description directly from GitHub context first
             PR_BODY='${{ github.event.pull_request.body }}'
             
-            echo "PR Body preview: ${PR_BODY:0:200}..."
-            
             # Check if the PR template has X marked for loading latest agent updates
             if echo "$PR_BODY" | grep -q -i "\[x\].*load.*latest.*agent.*updates\|load.*latest.*agent.*updates.*\[x\]"; then
               SHOULD_UPDATE="true"
-              echo "✓ PR template indicates request for latest agent updates (lowercase x)"
             elif echo "$PR_BODY" | grep -q -i "\[X\].*load.*latest.*agent.*updates\|load.*latest.*agent.*updates.*\[X\]"; then
               SHOULD_UPDATE="true"
-              echo "✓ PR template indicates request for latest agent updates (uppercase X)"
-            else
-              echo "✗ No agent update request found in PR template"
             fi
           fi
-          
-          echo "Final decision: SHOULD_UPDATE=$SHOULD_UPDATE, SHOULD_RUN_REVIEW=$SHOULD_RUN_REVIEW"
           echo "should_update=$SHOULD_UPDATE" >> $GITHUB_OUTPUT
           echo "should_run_review=$SHOULD_RUN_REVIEW" >> $GITHUB_OUTPUT
 

@@ -45,10 +45,8 @@ class FirebaseClient:
             doc = doc_ref.get()
             if doc.exists:
                 data = doc.to_dict()
-                print(f"Found existing architecture summary for {repository} in project {self.project_name}", file=sys.stderr)
                 return data
             else:
-                print(f"No architecture summary found for {repository} in project {self.project_name}", file=sys.stderr)
                 return None
         except Exception as e:
             logging.error(f"Error fetching architecture summary: {str(e)}")
@@ -84,7 +82,6 @@ class FirebaseClient:
                 'metadata': metadata or {}
             }
             doc_ref.set(change_data)
-            print(f"Successfully added architecture change for {repository} in project {self.project_name}", file=sys.stderr)
             return doc_ref.id
         except Exception as e:
             logging.error(f"Error adding architecture change: {str(e)}")
@@ -103,7 +100,6 @@ class FirebaseClient:
                 data = doc.to_dict()
                 changes.append(data)
             
-            print(f"Found {len(changes)} recent changes for {repository} in project {self.project_name}", file=sys.stderr)
             return changes
         except Exception as e:
             logging.error(f"Error getting recent changes: {str(e)}")
@@ -120,13 +116,11 @@ class FirebaseClient:
             doc = doc_ref.get()
             
             if not doc.exists:
-                print(f"No existing summary found for {repository}, should summarize", file=sys.stderr)
                 return True
             
             data = doc.to_dict()
             changes_count = data.get('changes_count', 0)
             should_summarize = changes_count >= changes_threshold
-            print(f"Repository {repository} has {changes_count} changes, threshold is {changes_threshold}, should summarize: {should_summarize}", file=sys.stderr)
             return should_summarize
         except Exception as e:
             logging.error(f"Error checking should_summarize: {str(e)}")
@@ -148,7 +142,7 @@ class FirebaseClient:
                 return int(env_threshold)
             
             # Default fallback
-            print("No CHANGES_THRESHOLD found in Firebase or environment, using default: 5", file=sys.stderr)
+            # Fallback to default threshold
             return 5
             
         except (ValueError, TypeError) as e:

@@ -27,15 +27,12 @@ def parse_pr_description_macros(pr_body):
                 if (key == 'LINE_THRESHOLD' and numeric_value != '200') or \
                    (key == 'CHANGES_THRESHOLD' and numeric_value != '1'):
                     macros[key] = numeric_value
-                    print(f"Found custom macro in PR description: {key} = {numeric_value}")
     
     return macros
 
 def main():
     """Main function to parse PR description macros and set GitHub outputs."""
     pr_body = os.environ.get('PR_BODY', '')
-    
-    print("Parsing PR description for macro configuration...")
     
     # Parse macros from PR description
     pr_macros = parse_pr_description_macros(pr_body)
@@ -50,10 +47,6 @@ def main():
     has_pr_macros = len(pr_macros) > 0
     with open(output_file, 'a') as f:
         f.write(f"has_pr_macros={str(has_pr_macros).lower()}\n")
-    
-    print(f"Found {len(pr_macros)} macro(s) in PR description")
-    if not pr_macros:
-        print("No macros found in PR description, will fall back to Firebase/defaults")
 
 if __name__ == "__main__":
     main()
