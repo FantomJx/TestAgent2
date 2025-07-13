@@ -28,6 +28,17 @@ def parse_pr_description_macros(pr_body):
                    (key == 'CHANGES_THRESHOLD' and numeric_value != '1'):
                     macros[key] = numeric_value
     
+    # Parse custom AI prompt instructions
+    custom_prompt_pattern = r'\*\* Additional prompt instructions:\*\*\s*```\s*(.*?)\s*```'
+    custom_prompt_match = re.search(custom_prompt_pattern, pr_body, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+    if custom_prompt_match:
+        custom_prompt = custom_prompt_match.group(1).strip()
+        # Remove HTML comments and empty lines
+        custom_prompt = re.sub(r'<!--.*?-->', '', custom_prompt, flags=re.DOTALL)
+        custom_prompt = '\n'.join(line.strip() for line in custom_prompt.split('\n') if line.strip())
+        if custom_prompt:
+            macros['CUSTOM_AI_PROMPT'] = custom_prompt
+    
     return macros
 
 def main():
