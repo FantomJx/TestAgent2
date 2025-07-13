@@ -174,18 +174,11 @@ jobs:
               IMPORTANT_CHANGE_LABELS="important change,important changes"
             fi
 
-            # CUSTOM_PROMPT_ADDITIONS (only from PR description)
-            CUSTOM_PROMPT_ADDITIONS=""
-            if [ -n "${{ steps.parse-pr-macros.outputs.pr_custom_prompt_additions }}" ]; then
-              CUSTOM_PROMPT_ADDITIONS="${{ steps.parse-pr-macros.outputs.pr_custom_prompt_additions }}"
-            fi
-
             # Set outputs
             echo "line_threshold=$LINE_THRESHOLD" >> "$GITHUB_OUTPUT"
             echo "changes_threshold=$CHANGES_THRESHOLD" >> "$GITHUB_OUTPUT"
             echo "important_change_markers=$IMPORTANT_CHANGE_MARKERS" >> "$GITHUB_OUTPUT"
             echo "important_change_labels=$IMPORTANT_CHANGE_LABELS" >> "$GITHUB_OUTPUT"
-            echo "custom_prompt_additions=$CUSTOM_PROMPT_ADDITIONS" >> "$GITHUB_OUTPUT"
 
             # Log the resolved values
             echo "Resolved macro configuration:"
@@ -193,7 +186,6 @@ jobs:
             echo "  CHANGES_THRESHOLD: $CHANGES_THRESHOLD"
             echo "  IMPORTANT_CHANGE_MARKERS: $IMPORTANT_CHANGE_MARKERS"
             echo "  IMPORTANT_CHANGE_LABELS: $IMPORTANT_CHANGE_LABELS"
-            echo "  CUSTOM_PROMPT_ADDITIONS: $CUSTOM_PROMPT_ADDITIONS"
 
       - name: Generate diff between base and head (excluding workflow file)
         id: diff
@@ -380,7 +372,6 @@ jobs:
           HAS_IMPORTANT_LABEL: ${{ steps.choose-model.outputs.has_important_label }}
           LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
           ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
-          CUSTOM_PROMPT_ADDITIONS: ${{ steps.resolve-macros.outputs.custom_prompt_additions }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 2
