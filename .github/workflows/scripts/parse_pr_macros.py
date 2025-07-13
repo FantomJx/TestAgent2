@@ -28,6 +28,15 @@ def parse_pr_description_macros(pr_body):
                    (key == 'CHANGES_THRESHOLD' and numeric_value != '1'):
                     macros[key] = numeric_value
     
+    # Parse custom prompt additions
+    # Look for a pattern like: ** Custom AI Review Instructions: ** `custom text here`
+    custom_prompt_pattern = r'\*\*\s*Custom AI Review Instructions:\s*\*\*\s*`([^`]+)`'
+    custom_match = re.search(custom_prompt_pattern, pr_body, re.IGNORECASE | re.MULTILINE)
+    if custom_match:
+        custom_prompt = custom_match.group(1).strip()
+        if custom_prompt:
+            macros['CUSTOM_PROMPT_ADDITIONS'] = custom_prompt
+    
     return macros
 
 def main():

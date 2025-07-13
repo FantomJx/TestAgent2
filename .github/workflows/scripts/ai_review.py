@@ -201,11 +201,17 @@ def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
 def create_review_prompt(diff: str) -> str:
     """Create the review prompt for the AI model."""
     architecture_context = read_architecture_context()
+    
+    # Get custom prompt additions from environment variable
+    custom_additions = os.environ.get('CUSTOM_PROMPT_ADDITIONS', '').strip()
 
     # Log minimal diff details
     diff_lines = diff.count('\n')
     diff_length = len(diff)
     print(f"Diff size: {diff_lines:,} lines, {diff_length:,} characters", file=sys.stderr)
+    
+    if custom_additions:
+        print(f"Custom prompt additions found: {len(custom_additions)} characters", file=sys.stderr)
 
     # Truncate diff if it's too large to avoid API limits
     max_diff_length = 5000  # Conservative limit for diff content
@@ -214,13 +220,23 @@ def create_review_prompt(diff: str) -> str:
             f"WARNING: Diff is very large ({diff_length:,} chars), truncating to {max_diff_length:,} chars", file=sys.stderr)
         diff = diff[:max_diff_length] + "\n... (diff truncated due to size)"
 
-    return f"""You are a helpful and diligent code assistant. Review the following unified diff and provide line-by-line feedback for specific issues.
+    # Build the base prompt
+    prompt = f"""You are a helpful and diligent code assistant. Review the following unified diff and provide line-by-line feedback for specific issues.
 
     TASK
     Review the unified diff below and return feedback **only** on lines that were *added* or *modified*.
 
     ARCHITECTURE CONTEXT
-    {architecture_context}
+    {architecture_context}"""
+    
+    # Add custom instructions if provided
+    if custom_additions:
+        prompt += f"""
+
+    ADDITIONAL CUSTOM INSTRUCTIONS
+    {custom_additions}"""
+    
+    prompt += f"""
 
     OUTPUT
     Return a JSON array.  Each element **must** follow this exact schema:
@@ -250,6 +266,8 @@ def create_review_prompt(diff: str) -> str:
     ```diff
     {diff}
 ```"""
+    
+    return prompt
 
 
 def should_use_claude(diff: str, has_important_label: bool, line_threshold: int = 0) -> bool:
