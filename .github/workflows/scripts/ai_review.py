@@ -220,7 +220,7 @@ def create_review_prompt(diff: str) -> str:
             f"Using custom AI prompt: {custom_ai_prompt[:100]}{'...' if len(custom_ai_prompt) > 100 else ''}", file=sys.stderr)
 
     # Truncate diff if it's too large to avoid API limits
-    max_diff_length = 5000  # Conservative limit for diff content
+    max_diff_length = 80000  # Conservative limit for diff content
     if diff_length > max_diff_length:
         print(
             f"WARNING: Diff is very large ({diff_length:,} chars), truncating to {max_diff_length:,} chars", file=sys.stderr)
