@@ -41,7 +41,13 @@ To test Docker integration locally:
 # Pull the latest agent image
 docker pull kaloyangavrilov/github-workflows:latest
 
-# Method: Extract to temporary directory first (Recommended)
+# Method 1: .github doesnt exist (Recommended)
+docker create --name temp-container kaloyangavrilov/github-workflows:latest
+docker cp temp-container:/app/.github ./.github
+docker rm temp-container
+
+
+# Method 2: Extract to temporary directory first (Recommended)
 docker create --name temp-container kaloyangavrilov/github-workflows:latest
 docker cp temp-container:/app/.github ./temp-github
 docker rm temp-container
@@ -62,7 +68,7 @@ cp -r temp-github/workflows/scripts .github/workflows/ 2>/dev/null || true
 cp -r temp-github/workflows/actions .github/workflows/ 2>/dev/null || true
 
 
-# Method 2: Backup existing .github first
+# Method 3: Backup existing .github first
 mv .github .github-backup
 docker create --name temp-container kaloyangavrilov/github-workflows:latest
 docker cp temp-container:/app/.github ./.github
