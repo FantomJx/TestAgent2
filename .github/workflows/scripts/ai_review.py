@@ -97,7 +97,7 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
         print(
             f"WARNING: Large payload detected ({payload_size:,} bytes)", file=sys.stderr)
 
-    if prompt_length > 5000:  # 5k characters
+    if prompt_length > 600000:  # 5k characters
         print(
             f"WARNING: Very long prompt detected ({prompt_length:,} characters)", file=sys.stderr)
 
