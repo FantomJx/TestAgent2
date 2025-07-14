@@ -1,3 +1,4 @@
+from cost_tracker import CostTracker
 import json
 import os
 import sys
@@ -7,12 +8,11 @@ import base64
 
 # Add the scripts directory to the path for importing cost_tracker
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cost_tracker import CostTracker
 
 
 def read_architecture_context() -> str:
     """Read the architecture summary file for context."""
-    file_path = "architecture_summary.txt"  # Use relative path
+    file_path = "architecture_summary.txt"  # Use the relative path
 
     if not os.environ.get('ARCHITECTURE_CONTEXT_B64'):
         if not os.path.exists(file_path):
@@ -89,14 +89,17 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
     payload_size = len(json.dumps(payload))
     prompt_length = len(payload.get('messages', [{}])[0].get('content', ''))
 
-    print(f"Claude API call - Model: {payload.get('model', 'unknown')}", file=sys.stderr)
-    
+    print(
+        f"Claude API call - Model: {payload.get('model', 'unknown')}", file=sys.stderr)
+
     # Log warning if payload is very large
     if payload_size > 100000:  # 100k bytes
-        print(f"WARNING: Large payload detected ({payload_size:,} bytes)", file=sys.stderr)
+        print(
+            f"WARNING: Large payload detected ({payload_size:,} bytes)", file=sys.stderr)
 
     if prompt_length > 5000:  # 5k characters
-        print(f"WARNING: Very long prompt detected ({prompt_length:,} characters)", file=sys.stderr)
+        print(
+            f"WARNING: Very long prompt detected ({prompt_length:,} characters)", file=sys.stderr)
 
     with open('/tmp/claude_payload.json', 'w') as f:
         json.dump(payload, f)
@@ -155,8 +158,9 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
 def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
     """Call OpenAI API and return the response content."""
     # Log minimal payload details
-    print(f"OpenAI API call - Model: {payload.get('model', 'unknown')}", file=sys.stderr)
-    
+    print(
+        f"OpenAI API call - Model: {payload.get('model', 'unknown')}", file=sys.stderr)
+
     with open('/tmp/openai_payload.json', 'w') as f:
         json.dump(payload, f)
 
@@ -201,17 +205,19 @@ def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
 def create_review_prompt(diff: str) -> str:
     """Create the review prompt for the AI model."""
     architecture_context = read_architecture_context()
-    
+
     # Get custom AI prompt from environment
     custom_ai_prompt = os.environ.get('CUSTOM_AI_PROMPT', '').strip()
 
     # Log minimal diff details
     diff_lines = diff.count('\n')
     diff_length = len(diff)
-    print(f"Diff size: {diff_lines:,} lines, {diff_length:,} characters", file=sys.stderr)
-    
+    print(
+        f"Diff size: {diff_lines:,} lines, {diff_length:,} characters", file=sys.stderr)
+
     if custom_ai_prompt:
-        print(f"Using custom AI prompt: {custom_ai_prompt[:100]}{'...' if len(custom_ai_prompt) > 100 else ''}", file=sys.stderr)
+        print(
+            f"Using custom AI prompt: {custom_ai_prompt[:100]}{'...' if len(custom_ai_prompt) > 100 else ''}", file=sys.stderr)
 
     # Truncate diff if it's too large to avoid API limits
     max_diff_length = 5000  # Conservative limit for diff content
@@ -364,7 +370,7 @@ if __name__ == "__main__":
         print(
             "No significant files to analyze after filtering .github files", file=sys.stderr)
         review_b64 = base64.b64encode("[]".encode('utf-8')).decode('utf-8')
-        
+
         # Write output to GitHub Actions output file
         if 'GITHUB_OUTPUT' in os.environ:
             with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
@@ -394,7 +400,7 @@ if __name__ == "__main__":
 
     # Output base64 encoded review and model info
     review_b64 = base64.b64encode(review.encode('utf-8')).decode('utf-8')
-    
+
     # Write output to GitHub Actions output file
     if 'GITHUB_OUTPUT' in os.environ:
         with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:

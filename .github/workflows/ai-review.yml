@@ -4,23 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to review'
+        description: "PR number to review"
         required: true
         type: string
       pr_head_sha:
-        description: 'PR head SHA'
+        description: "PR head SHA"
         required: true
         type: string
       pr_base_sha:
-        description: 'PR base SHA'
+        description: "PR base SHA"
         required: true
         type: string
       pr_author:
-        description: 'PR author'
+        description: "PR author"
         required: true
         type: string
       updated_commit_sha:
-        description: 'Updated commit SHA (if agent was updated)'
+        description: "Updated commit SHA (if agent was updated)"
         required: false
         type: string
 
@@ -43,7 +43,7 @@ jobs:
               repo: context.repo.repo,
               pull_number: parseInt('${{ github.event.inputs.pr_number }}')
             });
-            
+
             console.log('PR info retrieved:', {
               title: pr.title,
               body: pr.body ? pr.body.substring(0, 200) + '...' : 'No body',
@@ -51,7 +51,7 @@ jobs:
               head_repo: pr.head.repo.full_name,
               base_repo: pr.base.repo.full_name
             });
-            
+
             // Set outputs for use in subsequent steps
             core.setOutput('pr_title', pr.title);
             core.setOutput('pr_body', pr.body || '');
@@ -88,7 +88,7 @@ jobs:
       - name: Set up Python and install dependencies
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 1       
+          timeout_minutes: 1
           max_attempts: 2
           retry_on: both
           command: |
@@ -127,7 +127,7 @@ jobs:
         with:
           timeout_minutes: 1
           max_attempts: 2
-          retry_on: both         
+          retry_on: both
           command: |
             python3 .github/workflows/scripts/parse_pr_macros.py
 
@@ -173,7 +173,7 @@ jobs:
               IMPORTANT_CHANGE_MARKERS="#IMPORTANT-CHANGE,#IMPORTANT-CHANGES"
             fi
 
-            # IMPORTANT_CHANGE_LABELS (only from Firebase or defaults - not configurable in PR)
+            # IMPORTANT_CHANGE_LABELS (only from Firebase or defaults - not configurable in PR )
             if [ -n "${{ steps.fetch-macros.outputs.important_change_labels }}" ]; then
               IMPORTANT_CHANGE_LABELS="${{ steps.fetch-macros.outputs.important_change_labels }}"
             else
@@ -200,9 +200,9 @@ jobs:
         if: steps.should_skip.outputs.should_skip == 'false'
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 2   
+          timeout_minutes: 2
           max_attempts: 2
-          retry_on: both         
+          retry_on: both
           command: |
             BASE_SHA="${{ github.event.inputs.pr_base_sha }}"
             HEAD_SHA="${{ github.event.inputs.pr_head_sha }}"
@@ -220,9 +220,9 @@ jobs:
         if: steps.should_skip.outputs.should_skip == 'false'
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 1       
+          timeout_minutes: 1
           max_attempts: 2
-          retry_on: both             
+          retry_on: both
           command: |
             # Get macro values from resolved macros
             IMPORTANT_CHANGE_MARKERS="${{ steps.resolve-macros.outputs.important_change_markers }}"
