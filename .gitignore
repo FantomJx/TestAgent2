@@ -1,1 +1,24 @@
 .env
+
+# System files
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.bak
+
+# Log files
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
