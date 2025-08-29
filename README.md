@@ -99,9 +99,8 @@ Configure these secrets in repository Settings > Secrets and variables > Actions
 
 **GitHub Access:**
 - `PAT_TOKEN`: Personal Access Token with permissions:
-  - `repo` (full repository access)
-  - `contents` (read and write access)
-  - `pull-requests` (write access for comments)
+  - `repo` (full repository access - includes contents and pull-requests)
+  - `workflow` (update GitHub Action workflows - includes actions:write)
 
 **Firebase Configuration:**
 - `FIREBASE_PROJECT_ID`: Firebase project identifier
@@ -120,8 +119,10 @@ Configure these secrets in repository Settings > Secrets and variables > Actions
 
 ### Personal Access Token Configuration
 
-1. Navigate to GitHub Settings > Developer settings > Personal access tokens
-2. Generate new token (classic) with required permissions
+1. Navigate to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
+2. Generate new token (classic) with these **exact** scopes:
+   - ✅ **`repo`** (Full control of private repositories)
+   - ✅ **`workflow`** (Update GitHub Action workflows)
 3. Configure as `PAT_TOKEN` repository secret
 
 ## Deployment Instructions

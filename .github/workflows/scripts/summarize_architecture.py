@@ -209,8 +209,12 @@ def main():
           * Technology stack and frameworks used
           * Configuration and deployment structure
           * Critical dependencies and integrations
+          * Coding standards and conventions that must be followed
+          * Implementation patterns and practices used consistently
+          * Project-specific rules and constraints
+          * File organization and structural requirements
 
-        - Focus on the big picture: how everything fits together, not implementation details.
+        - Include both high-level architecture AND important implementation details that affect how code should be written.
         
         - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
         
@@ -242,8 +246,12 @@ def main():
           * Technology stack and frameworks used
           * Configuration and deployment structure
           * Critical dependencies and integrations
+          * Coding standards and conventions that must be followed
+          * Implementation patterns and practices used consistently
+          * Project-specific rules and constraints
+          * File organization and structural requirements
 
-        - Focus on the big picture: how everything fits together, not implementation details.
+        - Include both high-level architecture AND important implementation details that affect how code should be written.
         
         - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
         
@@ -293,8 +301,12 @@ REQUIREMENTS
   * Technology stack and frameworks used
   * Configuration and deployment structure
   * Critical dependencies and integrations
+  * Coding standards and conventions that must be followed
+  * Implementation patterns and practices used consistently
+  * Project-specific rules and constraints
+  * File organization and structural requirements
 
-- Focus on the big picture: how everything fits together, not implementation details.
+- Include both high-level architecture AND important implementation details that affect how code should be written.
 
 - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
 
@@ -347,8 +359,7 @@ Provide the architecture analysis below:
         # Update the architecture summary in Firebase
         firebase_client.update_architecture_summary(
             repository=repository,
-            summary=architecture_summary,
-            changes_count=0  # Reset counter after summarization
+            summary=architecture_summary
         )
         
         print(f"Architecture summary updated for {repository} in project {project_name}", file=sys.stderr)

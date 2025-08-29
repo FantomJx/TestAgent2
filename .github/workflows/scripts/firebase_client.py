@@ -6,7 +6,7 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 import base64
 import logging
-from fetch_macros import initialize_firebase, fetch_macros
+from fetch_macros import initialize_firebase
 from config import PROJECT_NAME
 
 class FirebaseClient:
@@ -54,15 +54,14 @@ class FirebaseClient:
             logging.error(f"Error fetching architecture summary: {str(e)}")
             return None
     
-    def update_architecture_summary(self, repository, summary, changes_count=0):
+    def update_architecture_summary(self, repository, summary):
         """Update the architecture summary for a repository"""
         try:
             doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
             data = {
                 'repository': repository,
                 'summary': summary,
-                'last_updated': datetime.utcnow(),
-                'changes_count': changes_count
+                'last_updated': datetime.utcnow()
             }
             
             doc_ref.set(data, merge=True)
@@ -109,10 +108,6 @@ class FirebaseClient:
     
     def should_summarize(self, repository, changes_threshold=None):
         """Determine if we should regenerate the architecture summary"""
-        if changes_threshold is None:
-            # Get from Firebase macros or environment variable
-            changes_threshold = self.get_changes_threshold()
-            
         try:
             doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
             doc = doc_ref.get()
@@ -120,33 +115,9 @@ class FirebaseClient:
             if not doc.exists:
                 return True
             
-            data = doc.to_dict()
-            changes_count = data.get('changes_count', 0)
-            should_summarize = changes_count >= changes_threshold
-            return should_summarize
+            # Always summarize when called (since this is only called for important changes)
+            return True
         except Exception as e:
             logging.error(f"Error checking should_summarize: {str(e)}")
             return False
-    
-    def get_changes_threshold(self):
-        """Get the changes threshold from Firebase macros or environment variable"""
-        try:
-            # First try to get from Firebase using the imported fetch_macros function
-            macros = fetch_macros()
-            
-            if macros and 'CHANGES_THRESHOLD' in macros:
-                threshold = macros['CHANGES_THRESHOLD']
-                return int(threshold)
-            
-            # Fallback to environment variable
-            env_threshold = os.environ.get('CHANGES_THRESHOLD')
-            if env_threshold is not None:
-                return int(env_threshold)
-            
-            # Default fallback
-            # Fallback to default threshold
-            return 5
-            
-        except (ValueError, TypeError) as e:
-            logging.error(f"Error parsing CHANGES_THRESHOLD: {str(e)}")
-            return 5
+

@@ -37,21 +37,9 @@ def main():
         
         print(f"Architecture change added with ID: {change_id}", file=sys.stderr)
         
-        # Check if we should regenerate the summary
+        # Check if we should regenerate the summary (always true for important changes)
         should_summarize = firebase_client.should_summarize(repository)
-        
-        # Increment changes count
-        current_summary = firebase_client.get_architecture_summary(repository)
-        if current_summary:
-            changes_count = current_summary.get('changes_count', 0) + 1
-            firebase_client.update_architecture_summary(
-                repository=repository,
-                summary=current_summary.get('summary', ''),
-                changes_count=changes_count
-            )
-            print(f"Architecture summary updated with changes_count: {changes_count}", file=sys.stderr)
-        else:
-            print("No existing summary found, creating new one", file=sys.stderr)
+        print(f"Should summarize: {should_summarize}", file=sys.stderr)
         
         # Write outputs to GitHub Actions output file
         if 'GITHUB_OUTPUT' in os.environ:
