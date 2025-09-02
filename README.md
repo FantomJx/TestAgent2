@@ -1,6 +1,6 @@
 # AI Code Review System
 
-An automated GitHub Actions-based code review system that leverages AI models (Claude 4 Sonnet and OpenAI o3-mini) to provide intelligent code analysis with context-aware architecture tracking and Firebase-powered change management.
+An automated GitHub Actions-based code review system that leverages Claude 4 Sonnet AI model to provide intelligent code analysis with context-aware architecture tracking and Firebase-powered change management.
 
 ## System Overview
 
@@ -34,7 +34,7 @@ The system now uses three specialized workflows:
 Central review processing component:
 - Implements intelligent model selection based on PR characteristics
 - Processes Git diffs with architectural context integration
-- Handles API communication for both Claude and OpenAI services
+- Handles API communication for Claude services
 - Provides content filtering and size optimization
 - Manages error handling and fallback scenarios
 
@@ -56,7 +56,7 @@ Multiple components manage persistent data:
 - Provides dynamic workflow customization
 
 **Cost Tracking System**
-- Monitors API usage for both Claude and OpenAI models
+- Monitors API usage for Claude models
 - Provides cost summaries for optimization decisions
 - Records usage patterns for future analysis
 - Uploads cost data as workflow artifacts
@@ -95,7 +95,6 @@ Configure these secrets in repository Settings > Secrets and variables > Actions
 
 **AI Service Authentication:**
 - `ANTHROPIC_API_KEY`: Anthropic API key for Claude model access
-- `OPENAI_API_KEY`: OpenAI API key for o3-mini model access
 
 **GitHub Access:**
 - `PAT_TOKEN`: Personal Access Token with permissions:
@@ -150,7 +149,7 @@ Create the following directory structure:
 The system automatically installs required packages:
 - `firebase-admin`: Firebase Firestore integration
 - `anthropic`: Claude API client
-- `openai`: OpenAI API client
+
 
 ### Environment Configuration
 
@@ -186,17 +185,10 @@ For significant architectural modifications:
    - Triggers summarization when threshold reached
    - Updates architectural documentation
 
-### Model Selection Algorithm
+### AI Model
 
-**Claude 4 Sonnet Selection Criteria:**
-- Pull request contains important change markers in title
-- Pull request has important change labels applied
-- Modified lines exceed configured threshold (default: 200)
-
-**OpenAI o3-mini Selection Criteria:**
-- Pull request modifications below threshold
-- Standard maintenance and bug fix changes
-- No importance indicators present
+**Claude 4 Sonnet Selection:**
+All pull requests are automatically analyzed using Claude 4 Sonnet for consistent, high-quality code reviews.
 
 ## System Features
 
@@ -324,11 +316,10 @@ Modify review sensitivity by adjusting:
 - File size limits for analysis
 
 ### Model Configuration
-Extend AI model support:
-- Add new model providers to `ai_review.py`
-- Implement custom payload formatting
-- Configure model-specific parameters
-- Update selection logic algorithms
+Configure Claude model parameters:
+- Adjust Claude-specific settings in `ai_review.py`
+- Configure Claude payload formatting
+- Update model parameters as needed
 
 ### Architecture Tracking Customization
 Configure change detection:

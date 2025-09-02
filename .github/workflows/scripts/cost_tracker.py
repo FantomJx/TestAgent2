@@ -5,17 +5,13 @@ from typing import Dict, Optional, Tuple
 
 
 class CostTracker:
-    """Track AI usage costs for Claude and OpenAI models."""
+    """Track AI usage costs for Claude models."""
     
     # Pricing per 1 million tokens
     PRICING = {
         'claude-sonnet-4-20250514': {
             'input': 3.00,   # $3/MTok
             'output': 15.00  # $15/MTok
-        },
-        'gpt-4.1-nano-2025-04-14': {
-            'input': 0.10,   # $1.10/MTok  
-            'output': 0.40   # $4.40/MTok
         }
     }
     
@@ -51,16 +47,10 @@ class CostTracker:
         output_tokens = 0
         
         try:
-            if model.startswith('claude'):
-                # Claude response format
-                usage = response_data.get('usage', {})
-                input_tokens = usage.get('input_tokens', 0)
-                output_tokens = usage.get('output_tokens', 0)
-            else:
-                # OpenAI response format
-                usage = response_data.get('usage', {})
-                input_tokens = usage.get('prompt_tokens', 0)
-                output_tokens = usage.get('completion_tokens', 0)
+            # Claude response format
+            usage = response_data.get('usage', {})
+            input_tokens = usage.get('input_tokens', 0)
+            output_tokens = usage.get('output_tokens', 0)
         except Exception as e:
             print(f"Warning: Could not extract token usage: {e}", file=sys.stderr)
         

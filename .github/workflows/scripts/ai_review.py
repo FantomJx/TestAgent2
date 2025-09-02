@@ -63,24 +63,7 @@ def create_claude_payload(model: str, prompt: str) -> Dict[str, Any]:
     }
 
 
-def create_openai_payload(model: str, prompt: str) -> Dict[str, Any]:
-    """Create payload for OpenAI API."""
-    payload = {
-        "model": model,
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    }
 
-    if model == "gpt-4.1-nano-2025-04-14":
-        payload["max_completion_tokens"] = 4000
-    else:
-        payload["max_tokens"] = 10000
-
-    return payload
 
 
 def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
@@ -155,51 +138,7 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
         return '[]'
 
 
-def call_openai_api(api_key: str, payload: Dict[str, Any]) -> str:
-    """Call OpenAI API and return the response content."""
-    # Log minimal payload details
-    print(
-        f"OpenAI API call - Model: {payload.get('model', 'unknown')}", file=sys.stderr)
 
-    with open('/tmp/openai_payload.json', 'w') as f:
-        json.dump(payload, f)
-
-    result = subprocess.run([
-        'curl', '-s', 'https://api.openai.com/v1/chat/completions',
-        '-H', f'Authorization: Bearer {api_key}',
-        '-H', 'Content-Type: application/json',
-        '-d', '@/tmp/openai_payload.json'
-    ], capture_output=True, text=True)
-
-    # get whole raw response (not status, the response itself)
-    print(f"OpenAI API raw response: {result.stdout}", file=sys.stderr)
-
-    if result.returncode != 0:
-        print(f'OpenAI API call failed: {result.stderr}', file=sys.stderr)
-        return '[]'
-
-    try:
-        data = json.loads(result.stdout)
-        if 'error' in data:
-            print(f'OpenAI API Error: {data["error"]}', file=sys.stderr)
-            return '[]'
-
-        # Track cost before returning
-        try:
-            cost_tracker = CostTracker()
-            cost_tracker.track_api_call(
-                model=payload.get('model', 'gpt-4.1-nano-2025-04-14'),
-                response_data=data,
-                call_type="review",
-                context="Code review analysis"
-            )
-        except Exception as e:
-            print(f"Warning: Cost tracking failed: {e}", file=sys.stderr)
-
-        return data.get('choices', [{}])[0].get('message', {}).get('content', '[]')
-    except Exception as e:
-        print(f'Error parsing OpenAI response: {e}', file=sys.stderr)
-        return '[]'
 
 
 def create_review_prompt(diff: str) -> str:
@@ -220,7 +159,7 @@ def create_review_prompt(diff: str) -> str:
             f"Using custom AI prompt: {custom_ai_prompt[:100]}{'...' if len(custom_ai_prompt) > 100 else ''}", file=sys.stderr)
 
     # Truncate diff if it's too large to avoid API limits
-    max_diff_length = 1500000  # Maximum safe limit for both Claude Sonnet 4 and GPT-4.1
+    max_diff_length = 1500000  # Maximum safe limit for Claude Sonnet 4
     if diff_length > max_diff_length:
         print(
             f"WARNING: Diff is very large ({diff_length:,} chars), truncating to {max_diff_length:,} chars", file=sys.stderr)
@@ -277,48 +216,20 @@ def create_review_prompt(diff: str) -> str:
     return base_prompt
 
 
-def should_use_claude(diff: str, has_important_label: bool, line_threshold: int = 0) -> bool:
-    """Determine if we should use Claude based on PR characteristics."""
-    # Always use Claude if the PR has "important changes" label
-    if has_important_label:
-        print("Using Claude due to 'important changes' label", file=sys.stderr)
-        return True
 
-    # Use Claude if the diff is large (over threshold)
-    diff_lines = diff.count('\n')
-    added_removed_lines = len(
-        [line for line in diff.split('\n') if line.startswith(('+', '-'))])
-
-    if added_removed_lines > line_threshold:
-        print(
-            f"Using Claude due to large diff: {added_removed_lines} lines > {line_threshold} threshold", file=sys.stderr)
-        return True
-
-    print(
-        f"Using gpt-4.1-nano-2025-04-14 for small diff: {added_removed_lines} lines <= {line_threshold} threshold", file=sys.stderr)
-    return False
 
 
 def get_ai_review(model: str, diff: str) -> str:
-    """Get AI review for the given diff using specified model."""
+    """Get AI review for the given diff using Claude model."""
     prompt = create_review_prompt(diff)
+    
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        print('ANTHROPIC_API_KEY not found', file=sys.stderr)
+        return '[]'
 
-    if model == "claude-sonnet-4-20250514":
-        api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-        if not api_key:
-            print('ANTHROPIC_API_KEY not found', file=sys.stderr)
-            return '[]'
-
-        payload = create_claude_payload(model, prompt)
-        return call_claude_api(api_key, payload)
-    else:
-        api_key = os.environ.get('OPENAI_API_KEY', '')
-        if not api_key:
-            print('OPENAI_API_KEY not found', file=sys.stderr)
-            return '[]'
-
-        payload = create_openai_payload(model, prompt)
-        return call_openai_api(api_key, payload)
+    payload = create_claude_payload(model, prompt)
+    return call_claude_api(api_key, payload)
 
 
 def filter_github_files_from_diff(diff: str) -> str:
@@ -381,18 +292,16 @@ if __name__ == "__main__":
             print(f"review_b64={review_b64}", file=sys.stderr)
         sys.exit(0)
 
-    # Determine which model to use based on labels and diff size
-    # if should_use_claude(diff, has_important_label, line_threshold):
+    # Always use Claude model
     selected_model = "claude-sonnet-4-20250514"
     model_comment = "This response was generated by Claude 4 Sonnet."
-    # else:
-    #     selected_model = "gpt-4.1-nano-2025-04-14"
-    #     model_comment = "This response was generated by gpt 4.1 nano."
 
-    # Override with provided model if specified
-    if model:
+    # Override with provided model if specified (must be a Claude model)
+    if model and model.startswith('claude'):
         selected_model = model
-        print(f"Using model override: {selected_model}", file=sys.stderr)
+        print(f"Using Claude model override: {selected_model}", file=sys.stderr)
+    elif model and not model.startswith('claude'):
+        print(f"Warning: Non-Claude model '{model}' requested, using Claude instead", file=sys.stderr)
 
     print(f"Selected model: {selected_model}", file=sys.stderr)
 
