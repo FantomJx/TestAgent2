@@ -14,25 +14,61 @@ jobs:
     steps:
       - name: Get PR information
         id: pr_info
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          # Use GitHub context directly since we're triggered by pull_request_target
-          # Strip carriage returns to prevent bash errors
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_BODY="${{ github.event.pull_request.body || '' }}"
+          python3 -c "
+          import os
+          import re
           
-          # Clean carriage returns and newlines for safe output
-          echo "pr_title=${PR_TITLE//[$'\r\n']/ }" >> $GITHUB_OUTPUT
-          echo "pr_body<<EOF" >> $GITHUB_OUTPUT
-          echo "${PR_BODY}" | tr -d '\r' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "pr_draft=${{ github.event.pull_request.draft }}" >> $GITHUB_OUTPUT
-          echo "head_repo=${{ github.event.pull_request.head.repo.full_name }}" >> $GITHUB_OUTPUT
-          echo "base_repo=${{ github.event.pull_request.base.repo.full_name }}" >> $GITHUB_OUTPUT
-          echo "pr_labels=${{ toJson(github.event.pull_request.labels.*.name) }}" >> $GITHUB_OUTPUT
-          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          echo "pr_head_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-          echo "pr_base_sha=${{ github.event.pull_request.base.sha }}" >> $GITHUB_OUTPUT
-          echo "pr_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+          # Clean carriage returns and handle multiline content safely
+          def clean_output(text):
+              if text is None:
+                  return ''
+              return re.sub(r'\r\n?', '\n', str(text))
+          
+          def clean_single_line(text):
+              if text is None:
+                  return ''
+              return re.sub(r'[\r\n]', ' ', str(text)).strip()
+          
+          # Get environment variables and clean them
+          pr_title = clean_single_line(os.environ.get('PR_TITLE', ''))
+          pr_body = clean_output(os.environ.get('PR_BODY', ''))
+          pr_draft = os.environ.get('PR_DRAFT', 'false')
+          head_repo = os.environ.get('HEAD_REPO', '')
+          base_repo = os.environ.get('BASE_REPO', '')
+          pr_labels = os.environ.get('PR_LABELS', '[]')
+          pr_number = os.environ.get('PR_NUMBER', '')
+          pr_head_sha = os.environ.get('PR_HEAD_SHA', '')
+          pr_base_sha = os.environ.get('PR_BASE_SHA', '')
+          pr_author = os.environ.get('PR_AUTHOR', '')
+          
+          # Write to GitHub output
+          github_output = os.environ.get('GITHUB_OUTPUT', '/dev/stdout')
+          with open(github_output, 'a') as f:
+              f.write(f'pr_title={pr_title}\n')
+              f.write('pr_body<<EOF\n')
+              f.write(f'{pr_body}\n')
+              f.write('EOF\n')
+              f.write(f'pr_draft={pr_draft}\n')
+              f.write(f'head_repo={head_repo}\n')
+              f.write(f'base_repo={base_repo}\n')
+              f.write(f'pr_labels={pr_labels}\n')
+              f.write(f'pr_number={pr_number}\n')
+              f.write(f'pr_head_sha={pr_head_sha}\n')
+              f.write(f'pr_base_sha={pr_base_sha}\n')
+              f.write(f'pr_author={pr_author}\n')
+          "
 
       - name: Check if should skip review
         id: should_skip
