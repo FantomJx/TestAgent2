@@ -108,10 +108,11 @@ def main():
         context_json = json.dumps(context_data, default=str)
         context_b64 = base64.b64encode(context_json.encode('utf-8')).decode('utf-8')
         
-        # Write output to GitHub Actions output file
+        # Write output to GitHub Actions output file (strip any carriage returns)
         if 'GITHUB_OUTPUT' in os.environ:
+            clean_context_b64 = str(context_b64).replace('\r', '').replace('\n', '')
             with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-                fh.write(f"context_b64={context_b64}\n")
+                fh.write(f"context_b64={clean_context_b64}\n")
         else:
             # Fallback for local testing
             print(f"context_b64={context_b64}", file=sys.stderr)
@@ -124,10 +125,11 @@ def main():
         # This allows the workflow to continue even if Firebase is unavailable
         empty_context_b64 = create_empty_context()
         
-        # Write output to GitHub Actions output file
+        # Write output to GitHub Actions output file (strip any carriage returns)
         if 'GITHUB_OUTPUT' in os.environ:
+            clean_empty_context_b64 = str(empty_context_b64).replace('\r', '').replace('\n', '')
             with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-                fh.write(f"context_b64={empty_context_b64}\n")
+                fh.write(f"context_b64={clean_empty_context_b64}\n")
         else:
             # Fallback for local testing
             print(f"context_b64={empty_context_b64}", file=sys.stderr)

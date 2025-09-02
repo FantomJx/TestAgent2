@@ -61,9 +61,10 @@ def fetch_macros():
             value = macros_data.get(key, default_value)
             print(f"  Key: '{key}' |  Value: {value}")
             
-            # Set GitHub Actions output
+            # Set GitHub Actions output (strip any carriage returns)
+            clean_value = str(value).replace('\r', '').replace('\n', ' ')
             with open(os.environ.get('GITHUB_OUTPUT', '/dev/stdout'), 'a') as f:
-                f.write(f"{key.lower()}={value}\n")
+                f.write(f"{key.lower()}={clean_value}\n")
         
         return macros_data
         
