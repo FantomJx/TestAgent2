@@ -248,7 +248,7 @@ def finalize_cost_tracking():
     
     summary = tracker.get_summary()
     
-    # Save summary to GitHub Actions output if available
+    # Save summary to GitHub Actions output if available (strip any carriage returns)
     if 'GITHUB_OUTPUT' in os.environ:
         with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
             fh.write(f"total_ai_cost={summary['total_cost']:.6f}\n")

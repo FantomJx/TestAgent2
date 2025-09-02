@@ -371,10 +371,11 @@ if __name__ == "__main__":
             "No significant files to analyze after filtering .github files", file=sys.stderr)
         review_b64 = base64.b64encode("[]".encode('utf-8')).decode('utf-8')
 
-        # Write output to GitHub Actions output file
+        # Write output to GitHub Actions output file (strip any carriage returns)
         if 'GITHUB_OUTPUT' in os.environ:
+            clean_review_b64 = str(review_b64).replace('\r', '').replace('\n', '')
             with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-                fh.write(f"review_b64={review_b64}\n")
+                fh.write(f"review_b64={clean_review_b64}\n")
         else:
             # Fallback for local testing
             print(f"review_b64={review_b64}", file=sys.stderr)
@@ -401,12 +402,15 @@ if __name__ == "__main__":
     # Output base64 encoded review and model info
     review_b64 = base64.b64encode(review.encode('utf-8')).decode('utf-8')
 
-    # Write output to GitHub Actions output file
+    # Write output to GitHub Actions output file (strip any carriage returns)
     if 'GITHUB_OUTPUT' in os.environ:
+        clean_review_b64 = str(review_b64).replace('\r', '').replace('\n', '')
+        clean_model_used = str(selected_model).replace('\r', '').replace('\n', ' ')
+        clean_model_comment = str(model_comment).replace('\r', '').replace('\n', ' ')
         with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-            fh.write(f"review_b64={review_b64}\n")
-            fh.write(f"model_used={selected_model}\n")
-            fh.write(f"model_comment={model_comment}\n")
+            fh.write(f"review_b64={clean_review_b64}\n")
+            fh.write(f"model_used={clean_model_used}\n")
+            fh.write(f"model_comment={clean_model_comment}\n")
     else:
         # Fallback for local testing
         print(f"review_b64={review_b64}", file=sys.stderr)

@@ -53,11 +53,12 @@ def main():
     # Parse macros from PR description
     pr_macros = parse_pr_description_macros(pr_body)
 
-    # Set GitHub Actions outputs for found macros
+    # Set GitHub Actions outputs for found macros (strip any carriage returns)
     output_file = os.environ.get('GITHUB_OUTPUT', '/dev/stdout')
     with open(output_file, 'a') as f:
         for key, value in pr_macros.items():
-            f.write(f"pr_{key.lower()}={value}\n")
+            clean_value = str(value).replace('\r', '').replace('\n', ' ')
+            f.write(f"pr_{key.lower()}={clean_value}\n")
 
     # Also output whether we found any macros in the PR description
     has_pr_macros = len(pr_macros) > 0
