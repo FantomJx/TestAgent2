@@ -6,7 +6,7 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 import base64
 import logging
-from fetch_macros import initialize_firebase
+
 from config import PROJECT_NAME
 
 class FirebaseClient:
