@@ -11,42 +11,28 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def read_architecture_context() -> str:
-    """Read the architecture summary file for context."""
-    file_path = "architecture_summary.txt"  # Use the relative path
-
-    if not os.environ.get('ARCHITECTURE_CONTEXT_B64'):
-        if not os.path.exists(file_path):
-            return "No existing architecture summary available."
-
-        try:
-            with open(file_path, 'r') as f:
-                content = f.read()
-                # Limit context to avoid token limits
-                words = content.split()
-                if len(words) > 2000:  # Limit to ~2000 words
-                    content = ' '.join(words[:2000]) + \
-                        "\n... (truncated for brevity)"
-                return content
-        except Exception as e:
-            print(f'Error reading architecture summary: {e}', file=sys.stderr)
-            return "Error reading architecture summary."
-    else:
-        try:
-            context_json = base64.b64decode(
-                os.environ['ARCHITECTURE_CONTEXT_B64']).decode('utf-8')
-            architecture_context = json.loads(context_json)
-            architecture_summary = architecture_context.get(
-                'architecture_summary', {}).get('summary', '')
-            recent_changes_context = ""
-            recent_changes = architecture_context.get('recent_changes', [])[
-                :3]  # Limit to 3 most recent
-            for change in recent_changes:
-                recent_changes_context += f"Recent PR #{change.get('pr_number', 'Unknown')}: {change.get('metadata', {}).get('pr_title', 'No title')}\n"
-            return f"{architecture_summary}\n\n{recent_changes_context}"
-        except Exception as e:
-            print(
-                f"Warning: Could not decode architecture context: {e}", file=sys.stderr)
-            return "Error decoding architecture context."
+    """Read the architecture summary from Firebase context."""
+    # Get architecture context from Firebase (via environment variable)
+    architecture_context_b64 = os.environ.get('ARCHITECTURE_CONTEXT_B64')
+    
+    if not architecture_context_b64:
+        return "No architecture summary available."
+    
+    try:
+        context_json = base64.b64decode(architecture_context_b64).decode('utf-8')
+        architecture_context = json.loads(context_json)
+        architecture_summary = architecture_context.get(
+            'architecture_summary', {}).get('summary', '')
+        recent_changes_context = ""
+        recent_changes = architecture_context.get('recent_changes', [])[
+            :3]  # Limit to 3 most recent
+        for change in recent_changes:
+            recent_changes_context += f"Recent PR #{change.get('pr_number', 'Unknown')}: {change.get('metadata', {}).get('pr_title', 'No title')}\n"
+        return f"{architecture_summary}\n\n{recent_changes_context}"
+    except Exception as e:
+        print(
+            f"Warning: Could not decode architecture context: {e}", file=sys.stderr)
+        return "Error decoding architecture context."
 
 
 def create_claude_payload(model: str, prompt: str) -> Dict[str, Any]:
