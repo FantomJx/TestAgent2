@@ -18,7 +18,7 @@ show_help() {
     echo "Environment Variables:"
     echo "  FIREBASE_SERVICE_ACCOUNT_JSON  - Firebase service account JSON"
     echo "  ANTHROPIC_API_KEY             - Anthropic API key"
-    echo "  OPENAI_API_KEY                - OpenAI API key"
+
     echo "  LINE_THRESHOLD                - Line threshold for model selection"
     echo "  CHANGES_THRESHOLD             - Changes threshold for architecture updates"
     echo ""
@@ -61,7 +61,7 @@ run_ai_review() {
     
     # Set required environment variables
     export DIFF_B64=$(base64 -w0 "$1")
-    export MODEL="${MODEL:-gpt-4.1-nano-2025-04-14}"
+    export MODEL="${MODEL:-claude-sonnet-4-20250514}"
     export HAS_IMPORTANT_LABEL="${HAS_IMPORTANT_LABEL:-false}"
     export LINE_THRESHOLD="${LINE_THRESHOLD:-200}"
     export GITHUB_OUTPUT="/tmp/github_output.txt"
@@ -119,7 +119,7 @@ health_check() {
     echo "Environment check:"
     echo "  FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:+SET}" 
     echo "  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:+SET}"
-    echo "  OPENAI_API_KEY: ${OPENAI_API_KEY:+SET}"
+
     exit 0
 }
 

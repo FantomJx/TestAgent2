@@ -15,8 +15,7 @@ COPY .github/ ./.github/
 # Install Python dependencies
 RUN pip install --no-cache-dir \
     firebase-admin \
-    anthropic \
-    openai
+    anthropic
 
 # Create entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
