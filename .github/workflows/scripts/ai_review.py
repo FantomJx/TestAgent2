@@ -250,7 +250,7 @@ if __name__ == "__main__":
     model = os.environ.get('MODEL', '')
     has_important_label = os.environ.get(
         'HAS_IMPORTANT_LABEL', 'false').lower() == 'true'
-    line_threshold = int(os.environ.get('LINE_THRESHOLD', '0'))
+
 
     if not diff_b64:
         print('Missing required environment variable: DIFF_B64', file=sys.stderr)

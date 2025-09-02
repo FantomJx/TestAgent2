@@ -114,20 +114,14 @@ jobs:
           command: |
             cd .github/workflows/scripts && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
 
-      - name: Set default configuration
-        id: set-defaults
+      - name: Parse custom AI prompt
+        id: parse-prompt
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
           max_attempts: 2
           retry_on: both
           command: |
-            # Set default configuration values
-            echo "line_threshold=200" >> "$GITHUB_OUTPUT"
-            echo "changes_threshold=5" >> "$GITHUB_OUTPUT"
-            echo "important_change_markers=#IMPORTANT-CHANGE,#IMPORTANT-CHANGES" >> "$GITHUB_OUTPUT"
-            echo "important_change_labels=important change,important changes" >> "$GITHUB_OUTPUT"
-            
             # Parse custom AI prompt from PR description if present
             PR_BODY='${{ steps.pr_info.outputs.pr_body }}'
             CUSTOM_AI_PROMPT=""
@@ -140,11 +134,12 @@ jobs:
             
             echo "custom_ai_prompt=$CUSTOM_AI_PROMPT" >> "$GITHUB_OUTPUT"
             
-            # Log the configuration
-            echo "Configuration set:"
-            echo "  LINE_THRESHOLD: 200"
-            echo "  CHANGES_THRESHOLD: 5"
-            echo "  CUSTOM_AI_PROMPT: $CUSTOM_AI_PROMPT"
+            # Log the custom prompt if present
+            if [ -n "$CUSTOM_AI_PROMPT" ]; then
+              echo "Custom AI prompt found: $CUSTOM_AI_PROMPT"
+            else
+              echo "No custom AI prompt specified"
+            fi
 
       - name: Generate diff between base and head (excluding workflow file)
         id: diff
@@ -166,65 +161,15 @@ jobs:
             LINE_COUNT=$(echo "$DIFF" | grep -c '^[+-]' || echo "0")
             echo "line_count=$LINE_COUNT" >> "$GITHUB_OUTPUT"
 
-      - name: Check for important changes
-        id: check-important
-        if: steps.should_skip.outputs.should_skip == 'false'
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 1
-          max_attempts: 2
-          retry_on: both
-          command: |
-            # Get default configuration values
-            IMPORTANT_CHANGE_MARKERS="${{ steps.set-defaults.outputs.important_change_markers }}"
-            IMPORTANT_CHANGE_LABELS="${{ steps.set-defaults.outputs.important_change_labels }}"
 
-            # Check for important change markers in title
-            HAS_IMPORTANT_TITLE=false
-            if echo '${{ steps.pr_info.outputs.pr_title }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_MARKERS" | sed 's/,/|/g')"; then
-              HAS_IMPORTANT_TITLE=true
-            fi
-
-            # Check for important change labels
-            HAS_IMPORTANT_LABEL=false
-            if echo '${{ steps.pr_info.outputs.pr_labels }}' | grep -q -E "$(echo "$IMPORTANT_CHANGE_LABELS" | sed 's/,/|/g')"; then
-              HAS_IMPORTANT_LABEL=true
-            fi
-
-            # Check PR description for checkboxes
-            PR_BODY='${{ steps.pr_info.outputs.pr_body }}'
-
-            # Check for "Do you have important changes?" checkbox marked with X
-            HAS_IMPORTANT_CHECKBOX=false
-            if echo "$PR_BODY" | grep -q -E '\[X\].*[Dd]o you have important changes'; then
-              HAS_IMPORTANT_CHECKBOX=true
-            fi
-
-            # Check for "Do you want to explicitly use Claude Sonnet 4?" checkbox marked with X
-            USE_CLAUDE_CHECKBOX=false
-            if echo "$PR_BODY" | grep -q -E '\[X\].*[Dd]o you want to explicitly use Claude Sonnet 4'; then
-              USE_CLAUDE_CHECKBOX=true
-            fi
-
-            # Determine if this is an important change
-            IS_IMPORTANT_CHANGE=false
-            if [ "$HAS_IMPORTANT_TITLE" = "true" ] || [ "$HAS_IMPORTANT_LABEL" = "true" ] || [ "$HAS_IMPORTANT_CHECKBOX" = "true" ]; then
-              IS_IMPORTANT_CHANGE=true
-            fi
-
-            echo "has_important_title=$HAS_IMPORTANT_TITLE" >> "$GITHUB_OUTPUT"
-            echo "has_important_label=$HAS_IMPORTANT_LABEL" >> "$GITHUB_OUTPUT"
-            echo "has_important_checkbox=$HAS_IMPORTANT_CHECKBOX" >> "$GITHUB_OUTPUT"
-            echo "use_claude_checkbox=$USE_CLAUDE_CHECKBOX" >> "$GITHUB_OUTPUT"
-            echo "is_important_change=$IS_IMPORTANT_CHANGE" >> "$GITHUB_OUTPUT"
 
       - name: Track architecture changes in Firebase
         id: track-arch
-        if: steps.should_skip.outputs.should_skip == 'false' && steps.check-important.outputs.is_important_change == 'true'
+        if: steps.should_skip.outputs.should_skip == 'false'
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          CHANGES_THRESHOLD: ${{ steps.set-defaults.outputs.changes_threshold }}
+
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
           PR_NUMBER: ${{ steps.pr_info.outputs.pr_number }}
           REPOSITORY: ${{ github.repository }}
@@ -241,12 +186,12 @@ jobs:
             python3 .github/workflows/scripts/track_architecture.py
 
       - name: Summarize architecture if needed
-        if: steps.should_skip.outputs.should_skip == 'false' && steps.check-important.outputs.is_important_change == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
+        if: steps.should_skip.outputs.should_skip == 'false' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          CHANGES_THRESHOLD: ${{ steps.set-defaults.outputs.changes_threshold }}
+
           REPOSITORY: ${{ github.repository }}
           SHOULD_SUMMARIZE: "true"
           PR_NUMBER: ${{ steps.pr_info.outputs.pr_number }}
@@ -265,7 +210,7 @@ jobs:
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          CHANGES_THRESHOLD: ${{ steps.set-defaults.outputs.changes_threshold }}
+
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr_info.outputs.pr_number }}
         uses: nick-invision/retry@v2
@@ -284,19 +229,8 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            THRESHOLD=${{ steps.set-defaults.outputs.line_threshold }}
-            LINES=${{ steps.diff.outputs.line_count }}
-            HAS_IMPORTANT_LABEL=${{ steps.check-important.outputs.has_important_label }}
-            HAS_IMPORTANT_TITLE=${{ steps.check-important.outputs.has_important_title }}
-            HAS_IMPORTANT_CHECKBOX=${{ steps.check-important.outputs.has_important_checkbox }}
-            USE_CLAUDE_CHECKBOX=${{ steps.check-important.outputs.use_claude_checkbox }}
-
-            # Set outputs for use in next steps
-            echo "has_important_label=$HAS_IMPORTANT_LABEL" >> "$GITHUB_OUTPUT"
-            echo "has_important_title=$HAS_IMPORTANT_TITLE" >> "$GITHUB_OUTPUT"
-            echo "has_important_checkbox=$HAS_IMPORTANT_CHECKBOX" >> "$GITHUB_OUTPUT"
-            echo "use_claude_checkbox=$USE_CLAUDE_CHECKBOX" >> "$GITHUB_OUTPUT"
-            echo "line_threshold=$THRESHOLD" >> "$GITHUB_OUTPUT"
+            # Always use Claude model
+            echo "Using Claude 4 Sonnet for all code reviews"
 
             # Always use Claude model
             echo "model=claude-sonnet-4-20250514" >> "$GITHUB_OUTPUT"
@@ -311,9 +245,9 @@ jobs:
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
           MODEL: ${{ steps.choose-model.outputs.model }}
           HAS_IMPORTANT_LABEL: ${{ steps.choose-model.outputs.has_important_label }}
-          LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
+
           ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
-          CUSTOM_AI_PROMPT: ${{ steps.set-defaults.outputs.custom_ai_prompt }}
+          CUSTOM_AI_PROMPT: ${{ steps.parse-prompt.outputs.custom_ai_prompt }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 2
