@@ -24,11 +24,7 @@ The system now uses three specialized workflows:
 - Orchestrates component execution with dependency management
 - Handles artifact collection and debugging support
 
-**Agent Update Workflow (`/.github/workflows/agent-update.yml`)**
-- Manages Docker-based workflow file updates
-- Fetches latest workflow versions from Docker image
-- Commits updated files to repository
-- Tracks image digests in Firebase for change detection
+
 
 ### 2. AI Review Engine (`/.github/scripts/ai_review.py`)
 Central review processing component:
@@ -47,7 +43,7 @@ Multiple components manage persistent data:
 - Implements data operations for architecture summaries and changes
 - Handles error recovery and retry logic
 
-- Tracks Docker image versions for automated updates
+
 
 
 
