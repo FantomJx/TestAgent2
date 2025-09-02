@@ -16,8 +16,15 @@ jobs:
         id: pr_info
         run: |
           # Use GitHub context directly since we're triggered by pull_request_target
-          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
-          echo "pr_body=${{ github.event.pull_request.body || '' }}" >> $GITHUB_OUTPUT
+          # Strip carriage returns to prevent bash errors
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body || '' }}"
+          
+          # Clean carriage returns and newlines for safe output
+          echo "pr_title=${PR_TITLE//[$'\r\n']/ }" >> $GITHUB_OUTPUT
+          echo "pr_body<<EOF" >> $GITHUB_OUTPUT
+          echo "${PR_BODY}" | tr -d '\r' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           echo "pr_draft=${{ github.event.pull_request.draft }}" >> $GITHUB_OUTPUT
           echo "head_repo=${{ github.event.pull_request.head.repo.full_name }}" >> $GITHUB_OUTPUT
           echo "base_repo=${{ github.event.pull_request.base.repo.full_name }}" >> $GITHUB_OUTPUT
