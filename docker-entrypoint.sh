@@ -8,7 +8,7 @@ show_help() {
     echo "Usage: docker run [options] <image> <command> [args...]"
     echo ""
     echo "Commands:"
-    echo "  fetch-macros          Fetch configuration macros from Firebase"
+
     echo "  track-costs           Initialize and track AI costs"
     echo "  ai-review <diff_file> Run AI code review on provided diff file"
     echo "  architecture-summary  Generate architecture summary"
@@ -24,12 +24,7 @@ show_help() {
     echo ""
 }
 
-# Function to run fetch macros
-run_fetch_macros() {
-    echo "Fetching configuration macros from Firebase..."
-    cd /app
-    python3 .github/workflows/fetch_macros.py
-}
+
 
 # Function to initialize cost tracking
 run_cost_tracking() {
@@ -125,9 +120,7 @@ health_check() {
 
 # Main command handler
 case "$1" in
-    "fetch-macros")
-        run_fetch_macros
-        ;;
+
     "track-costs")
         run_cost_tracking
         ;;

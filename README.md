@@ -46,14 +46,10 @@ Multiple components manage persistent data:
 - Manages authentication and connection handling
 - Implements data operations for architecture summaries and changes
 - Handles error recovery and retry logic
-- Stores and retrieves configuration macros for workflow customization
+
 - Tracks Docker image versions for automated updates
 
-**Macro System (`/.github/scripts/fetch_macros.py`)**
-- Retrieves configuration macros from Firebase
-- Parses PR-specific macros from description
-- Resolves final configuration by merging defaults with overrides
-- Provides dynamic workflow customization
+
 
 **Cost Tracking System**
 - Monitors API usage for Claude models
@@ -252,11 +248,9 @@ All pull requests are automatically analyzed using Claude 4 Sonnet for consisten
 - Maintains operational state through workflow failures
 
 ### Configuration Management
-- Supports global configuration macros in Firebase
-- Allows PR-specific macro overrides in PR descriptions
-- Dynamically resolves configuration at runtime
-- Provides centralized parameter management
-- Enables team-wide configuration consistency
+- Uses hardcoded default configuration values
+- Supports custom AI prompts from PR descriptions
+- Provides consistent configuration across all reviews
 
 ### Firebase Optimization
 - Uses efficient Firestore queries with proper indexing
