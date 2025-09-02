@@ -114,96 +114,37 @@ jobs:
           command: |
             cd .github/workflows/scripts && python3 -c "from cost_tracker import initialize_cost_tracking; initialize_cost_tracking()"
 
-      - name: Fetch configuration macros from Firebase
-        id: fetch-macros
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      - name: Set default configuration
+        id: set-defaults
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
           max_attempts: 2
           retry_on: both
           command: |
-            python3 .github/workflows/scripts/fetch_macros.py
-
-      - name: Parse macros from PR description
-        id: parse-pr-macros
-        if: steps.should_skip.outputs.should_skip == 'false'
-        continue-on-error: true
-        env:
-          PR_BODY: ${{ steps.pr_info.outputs.pr_body }}
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 1
-          max_attempts: 2
-          retry_on: both
-          command: |
-            python3 .github/workflows/scripts/parse_pr_macros.py
-
-      - name: Resolve final macro configuration
-        id: resolve-macros
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 1
-          max_attempts: 2
-          retry_on: both
-          command: |
-            # Priority: PR description > Firebase > defaults
-
-            # LINE_THRESHOLD
-            if [ -n "${{ steps.parse-pr-macros.outputs.pr_line_threshold }}" ]; then
-              LINE_THRESHOLD="${{ steps.parse-pr-macros.outputs.pr_line_threshold }}"
-            elif [ -n "${{ steps.fetch-macros.outputs.line_threshold }}" ]; then
-              LINE_THRESHOLD="${{ steps.fetch-macros.outputs.line_threshold }}"
-            else
-              LINE_THRESHOLD="200"
+            # Set default configuration values
+            echo "line_threshold=200" >> "$GITHUB_OUTPUT"
+            echo "changes_threshold=5" >> "$GITHUB_OUTPUT"
+            echo "important_change_markers=#IMPORTANT-CHANGE,#IMPORTANT-CHANGES" >> "$GITHUB_OUTPUT"
+            echo "important_change_labels=important change,important changes" >> "$GITHUB_OUTPUT"
+            
+            # Parse custom AI prompt from PR description if present
+            PR_BODY='${{ steps.pr_info.outputs.pr_body }}'
+            CUSTOM_AI_PROMPT=""
+            
+            # Extract custom prompt from PR template format
+            if echo "$PR_BODY" | grep -q "\*\* Additional prompt instructions:\*\*"; then
+              # Extract text between ``` blocks after the prompt instructions
+              CUSTOM_AI_PROMPT=$(echo "$PR_BODY" | sed -n '/\*\* Additional prompt instructions:\*\*/,/```/{/```/,/```/{/```/d; p}}' | sed '/^$/d' | tr '\n' ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             fi
-
-            # CHANGES_THRESHOLD
-            if [ -n "${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}" ]; then
-              CHANGES_THRESHOLD="${{ steps.parse-pr-macros.outputs.pr_changes_threshold }}"
-            elif [ -n "${{ steps.fetch-macros.outputs.changes_threshold }}" ]; then
-              CHANGES_THRESHOLD="${{ steps.fetch-macros.outputs.changes_threshold }}"
-            else
-              CHANGES_THRESHOLD="5"
-            fi
-
-            # CUSTOM_AI_PROMPT (only from PR description)
-            if [ -n "${{ steps.parse-pr-macros.outputs.pr_custom_ai_prompt }}" ]; then
-              CUSTOM_AI_PROMPT="${{ steps.parse-pr-macros.outputs.pr_custom_ai_prompt }}"
-            else
-              CUSTOM_AI_PROMPT=""
-            fi
-
-            # IMPORTANT_CHANGE_MARKERS (only from Firebase or defaults - not configurable in PR)
-            if [ -n "${{ steps.fetch-macros.outputs.important_change_markers }}" ]; then
-              IMPORTANT_CHANGE_MARKERS="${{ steps.fetch-macros.outputs.important_change_markers }}"
-            else
-              IMPORTANT_CHANGE_MARKERS="#IMPORTANT-CHANGE,#IMPORTANT-CHANGES"
-            fi
-
-            # IMPORTANT_CHANGE_LABELS (only from Firebase or defaults - not configurable in PR )
-            if [ -n "${{ steps.fetch-macros.outputs.important_change_labels }}" ]; then
-              IMPORTANT_CHANGE_LABELS="${{ steps.fetch-macros.outputs.important_change_labels }}"
-            else
-              IMPORTANT_CHANGE_LABELS="important change,important changes"
-            fi
-
-            # Set outputs
-            echo "line_threshold=$LINE_THRESHOLD" >> "$GITHUB_OUTPUT"
-            echo "changes_threshold=$CHANGES_THRESHOLD" >> "$GITHUB_OUTPUT"
+            
             echo "custom_ai_prompt=$CUSTOM_AI_PROMPT" >> "$GITHUB_OUTPUT"
-            echo "important_change_markers=$IMPORTANT_CHANGE_MARKERS" >> "$GITHUB_OUTPUT"
-            echo "important_change_labels=$IMPORTANT_CHANGE_LABELS" >> "$GITHUB_OUTPUT"
-
-            # Log the resolved values
-            echo "Resolved macro configuration:"
-            echo "  LINE_THRESHOLD: $LINE_THRESHOLD"
-            echo "  CHANGES_THRESHOLD: $CHANGES_THRESHOLD"
+            
+            # Log the configuration
+            echo "Configuration set:"
+            echo "  LINE_THRESHOLD: 200"
+            echo "  CHANGES_THRESHOLD: 5"
             echo "  CUSTOM_AI_PROMPT: $CUSTOM_AI_PROMPT"
-            echo "  IMPORTANT_CHANGE_MARKERS: $IMPORTANT_CHANGE_MARKERS"
-            echo "  IMPORTANT_CHANGE_LABELS: $IMPORTANT_CHANGE_LABELS"
 
       - name: Generate diff between base and head (excluding workflow file)
         id: diff
@@ -234,9 +175,9 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            # Get macro values from resolved macros
-            IMPORTANT_CHANGE_MARKERS="${{ steps.resolve-macros.outputs.important_change_markers }}"
-            IMPORTANT_CHANGE_LABELS="${{ steps.resolve-macros.outputs.important_change_labels }}"
+            # Get default configuration values
+            IMPORTANT_CHANGE_MARKERS="${{ steps.set-defaults.outputs.important_change_markers }}"
+            IMPORTANT_CHANGE_LABELS="${{ steps.set-defaults.outputs.important_change_labels }}"
 
             # Check for important change markers in title
             HAS_IMPORTANT_TITLE=false
@@ -283,7 +224,7 @@ jobs:
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
+          CHANGES_THRESHOLD: ${{ steps.set-defaults.outputs.changes_threshold }}
           DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
           PR_NUMBER: ${{ steps.pr_info.outputs.pr_number }}
           REPOSITORY: ${{ github.repository }}
@@ -305,7 +246,7 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
+          CHANGES_THRESHOLD: ${{ steps.set-defaults.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
           SHOULD_SUMMARIZE: "true"
           PR_NUMBER: ${{ steps.pr_info.outputs.pr_number }}
@@ -324,7 +265,7 @@ jobs:
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          CHANGES_THRESHOLD: ${{ steps.resolve-macros.outputs.changes_threshold }}
+          CHANGES_THRESHOLD: ${{ steps.set-defaults.outputs.changes_threshold }}
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr_info.outputs.pr_number }}
         uses: nick-invision/retry@v2
@@ -343,7 +284,7 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            THRESHOLD=${{ steps.resolve-macros.outputs.line_threshold }}
+            THRESHOLD=${{ steps.set-defaults.outputs.line_threshold }}
             LINES=${{ steps.diff.outputs.line_count }}
             HAS_IMPORTANT_LABEL=${{ steps.check-important.outputs.has_important_label }}
             HAS_IMPORTANT_TITLE=${{ steps.check-important.outputs.has_important_title }}
@@ -372,7 +313,7 @@ jobs:
           HAS_IMPORTANT_LABEL: ${{ steps.choose-model.outputs.has_important_label }}
           LINE_THRESHOLD: ${{ steps.choose-model.outputs.line_threshold }}
           ARCHITECTURE_CONTEXT_B64: ${{ steps.fetch-context.outputs.context_b64 }}
-          CUSTOM_AI_PROMPT: ${{ steps.resolve-macros.outputs.custom_ai_prompt }}
+          CUSTOM_AI_PROMPT: ${{ steps.set-defaults.outputs.custom_ai_prompt }}
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 2
