@@ -4,6 +4,7 @@ import sys
 import base64
 import glob
 from firebase_client import FirebaseClient
+from config import PROJECT_NAME
 import anthropic
 
 # Add the scripts directory to the path for importing cost_tracker
@@ -142,7 +143,7 @@ def check_project_structure():
 
 def main():
     try:
-        project_name = "test"  # Hardcoded project name
+        project_name = PROJECT_NAME
         firebase_client = FirebaseClient(project_name=project_name)
         repository = os.environ['REPOSITORY']
         
