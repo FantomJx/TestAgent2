@@ -165,7 +165,7 @@ jobs:
 
       - name: Track architecture changes in Firebase
         id: track-arch
-        if: steps.should_skip.outputs.should_skip == 'false'
+        if: steps.should_skip.outputs.should_skip == 'false' && steps.parse-pr-macros.outputs.pr_update_architecture_summary == 'true'
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -186,7 +186,7 @@ jobs:
             python3 .github/workflows/scripts/track_architecture.py
 
       - name: Summarize architecture if needed
-        if: steps.should_skip.outputs.should_skip == 'false' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
+        if: steps.should_skip.outputs.should_skip == 'false' && steps.parse-pr-macros.outputs.pr_update_architecture_summary == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
