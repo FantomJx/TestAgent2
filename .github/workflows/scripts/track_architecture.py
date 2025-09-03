@@ -2,11 +2,12 @@ import os
 import base64
 import sys
 from firebase_client import FirebaseClient
+from config import PROJECT_NAME
 
 def main():
     try:
         # Initialize Firebase client with project name
-        project_name = "test"  # Hardcoded project name
+        project_name = PROJECT_NAME
         firebase_client = FirebaseClient(project_name=project_name)
         
         # Get required environment variables
