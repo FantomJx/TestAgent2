@@ -141,6 +141,20 @@ jobs:
               echo "No custom AI prompt specified"
             fi
 
+      - name: Parse macros from PR description
+        id: parse-pr-macros
+        if: steps.should_skip.outputs.should_skip == 'false'
+        continue-on-error: true
+        env:
+          PR_BODY: ${{ steps.pr_info.outputs.pr_body }}
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 2
+          retry_on: both
+          command: |
+            python3 .github/workflows/scripts/parse_pr_macros.py
+
       - name: Generate diff between base and head (excluding workflow file)
         id: diff
         if: steps.should_skip.outputs.should_skip == 'false'
