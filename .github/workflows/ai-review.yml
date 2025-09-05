@@ -3,6 +3,24 @@ name: AI Code Review
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+      pr_author:
+        description: 'PR author username'
+        required: true
+        type: string
+      base_sha:
+        description: 'Base commit SHA'
+        required: true
+        type: string
+      head_sha:
+        description: 'Head commit SHA'
+        required: true
+        type: string
 
 jobs:
   ai-review:
@@ -15,6 +33,7 @@ jobs:
       - name: Get PR information
         id: pr_info
         env:
+          # For pull_request_target events
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body || '' }}
           PR_DRAFT: ${{ github.event.pull_request.draft }}
@@ -25,6 +44,12 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          # For workflow_dispatch events
+          MANUAL_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          MANUAL_PR_AUTHOR: ${{ github.event.inputs.pr_author }}
+          MANUAL_BASE_SHA: ${{ github.event.inputs.base_sha }}
+          MANUAL_HEAD_SHA: ${{ github.event.inputs.head_sha }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           python3 -c "
           import os
@@ -41,17 +66,36 @@ jobs:
                   return ''
               return re.sub(r'[\r\n]', ' ', str(text)).strip()
           
-          # Get environment variables and clean them
-          pr_title = clean_single_line(os.environ.get('PR_TITLE', ''))
-          pr_body = clean_output(os.environ.get('PR_BODY', ''))
-          pr_draft = os.environ.get('PR_DRAFT', 'false')
-          head_repo = os.environ.get('HEAD_REPO', '')
-          base_repo = os.environ.get('BASE_REPO', '')
-          pr_labels = os.environ.get('PR_LABELS', '[]')
-          pr_number = os.environ.get('PR_NUMBER', '')
-          pr_head_sha = os.environ.get('PR_HEAD_SHA', '')
-          pr_base_sha = os.environ.get('PR_BASE_SHA', '')
-          pr_author = os.environ.get('PR_AUTHOR', '')
+          # Determine event type and get appropriate values
+          event_name = os.environ.get('EVENT_NAME', '')
+          
+          if event_name == 'workflow_dispatch':
+              # Manual dispatch - use input values
+              pr_number = os.environ.get('MANUAL_PR_NUMBER', '')
+              pr_author = os.environ.get('MANUAL_PR_AUTHOR', '')
+              pr_base_sha = os.environ.get('MANUAL_BASE_SHA', '')
+              pr_head_sha = os.environ.get('MANUAL_HEAD_SHA', '')
+              
+              # Set minimal values for manual runs
+              pr_title = f'Manual Review for PR #{pr_number}'
+              pr_body = ''
+              pr_draft = 'false'
+              head_repo = os.environ.get('HEAD_REPO', '')
+              base_repo = os.environ.get('BASE_REPO', '')
+              pr_labels = '[]'
+              
+          else:
+              # Pull request event - use event data
+              pr_title = clean_single_line(os.environ.get('PR_TITLE', ''))
+              pr_body = clean_output(os.environ.get('PR_BODY', ''))
+              pr_draft = os.environ.get('PR_DRAFT', 'false')
+              head_repo = os.environ.get('HEAD_REPO', '')
+              base_repo = os.environ.get('BASE_REPO', '')
+              pr_labels = os.environ.get('PR_LABELS', '[]')
+              pr_number = os.environ.get('PR_NUMBER', '')
+              pr_head_sha = os.environ.get('PR_HEAD_SHA', '')
+              pr_base_sha = os.environ.get('PR_BASE_SHA', '')
+              pr_author = os.environ.get('PR_AUTHOR', '')
           
           # Write to GitHub output
           github_output = os.environ.get('GITHUB_OUTPUT', '/dev/stdout')
@@ -164,9 +208,25 @@ jobs:
           max_attempts: 2
           retry_on: both
           command: |
-            BASE_SHA="${{ steps.pr_info.outputs.pr_base_sha }}"
-            HEAD_SHA="${{ steps.pr_info.outputs.pr_head_sha }}"
-
+            # Determine SHA values based on event type
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              # For manual runs, use provided input values
+              BASE_SHA="${{ github.event.inputs.base_sha }}"
+              HEAD_SHA="${{ github.event.inputs.head_sha }}"
+            else
+              # For PR events, use event data
+              BASE_SHA="${{ steps.pr_info.outputs.pr_base_sha }}"
+              HEAD_SHA="${{ steps.pr_info.outputs.pr_head_sha }}"
+            fi
+            
+            # Validate that we have both SHA values
+            if [ -z "$BASE_SHA" ] || [ -z "$HEAD_SHA" ]; then
+              echo "Error: BASE_SHA or HEAD_SHA is empty"
+              echo "BASE_SHA: '$BASE_SHA'"
+              echo "HEAD_SHA: '$HEAD_SHA'"
+              exit 1
+            fi
+            
             git fetch origin "$BASE_SHA" "$HEAD_SHA"
 
             DIFF=$(git diff "$BASE_SHA" "$HEAD_SHA" -- . ':(exclude).github/**')
