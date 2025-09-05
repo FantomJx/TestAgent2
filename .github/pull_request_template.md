@@ -6,7 +6,7 @@
 
 _Add specific instructions or context for the AI reviewer:_
 
-** Additional prompt instructions:**
+** Additional prompt instructions: **
 
 ```
 
