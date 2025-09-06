@@ -137,7 +137,7 @@ jobs:
         with:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
-          ref: main
+          ref: ${{ github.event.repository.default_branch }},
 
       - name: Set up Python and install dependencies
         uses: nick-invision/retry@v2
@@ -229,10 +229,21 @@ jobs:
             
             git fetch origin "$BASE_SHA" "$HEAD_SHA"
 
-            DIFF=$(git diff "$BASE_SHA" "$HEAD_SHA" -- . ':(exclude).github/**')
-            echo "diff_b64=$(printf '%s' "$DIFF" | base64 -w0)" >> "$GITHUB_OUTPUT"
+            # Use git diff with output to file to avoid argument list length issues
+            git diff "$BASE_SHA" "$HEAD_SHA" -- . ':(exclude).github/**' > /tmp/diff_output.txt
+            
+            # Check diff size and truncate if too large (>1MB)
+            DIFF_SIZE=$(wc -c < /tmp/diff_output.txt)
+            if [ "$DIFF_SIZE" -gt 1048576 ]; then
+              echo "Diff too large ($DIFF_SIZE bytes), truncating to first 1MB"
+              head -c 1048576 /tmp/diff_output.txt > /tmp/diff_truncated.txt
+              echo -e "\n\n[DIFF TRUNCATED - Original size: $DIFF_SIZE bytes]" >> /tmp/diff_truncated.txt
+              mv /tmp/diff_truncated.txt /tmp/diff_output.txt
+            fi
+            
+            echo "diff_b64=$(base64 -w0 < /tmp/diff_output.txt)" >> "$GITHUB_OUTPUT"
 
-            LINE_COUNT=$(echo "$DIFF" | grep -c '^[+-]' || echo "0")
+            LINE_COUNT=$(grep -c '^[+-]' /tmp/diff_output.txt || echo "0")
             echo "line_count=$LINE_COUNT" >> "$GITHUB_OUTPUT"
 
 
