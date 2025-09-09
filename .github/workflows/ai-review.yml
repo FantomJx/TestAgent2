@@ -207,6 +207,10 @@ jobs:
           timeout_minutes: 2
           max_attempts: 2
           retry_on: both
+          retry_wait_seconds: 10
+          polling_interval_seconds: 1
+          warning_on_retry: true
+          continue_on_error: false
           command: |
             # Determine SHA values based on event type
             if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -232,12 +236,8 @@ jobs:
             DIFF=$(git diff "$BASE_SHA" "$HEAD_SHA" -- . ':(exclude).github/**')
             echo "diff_b64=$(printf '%s' "$DIFF" | base64 -w0)" >> "$GITHUB_OUTPUT"
             
-            
-
             LINE_COUNT=$(echo "$DIFF" | grep -c '^[+-]' || echo "0")
             echo "line_count=$LINE_COUNT" >> "$GITHUB_OUTPUT"
-
-
 
       - name: Track architecture changes in Firebase
         id: track-arch
