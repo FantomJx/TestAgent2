@@ -213,12 +213,15 @@ def main():
           * Implementation patterns and practices used consistently
           * Project-specific rules and constraints
           * File organization and structural requirements
+          * Critical architectural principles like separation of concerns, localization requirements, and proper delegation patterns
 
         - Include both high-level architecture AND important implementation details that affect how code should be written.
         
         - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
         
         - Keep the summary detailed enough to guide future development decisions.
+        
+        - Pay special attention to critical architectural principles: always use localization for UI text, never hardcode colors/fonts/sizes, maintain strict separation of concerns between UI and business logic, use onButtonClicked patterns for user interactions, and ensure widgets are pure and stateless.
 
         - Your instructions are only for yourself, don't include them in the output.
 
@@ -250,12 +253,15 @@ def main():
           * Implementation patterns and practices used consistently
           * Project-specific rules and constraints
           * File organization and structural requirements
+          * Critical architectural principles like separation of concerns, localization requirements, and proper delegation patterns
 
         - Include both high-level architecture AND important implementation details that affect how code should be written.
         
         - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
         
         - Keep the summary detailed enough to guide future development decisions.
+        
+        - Pay special attention to critical architectural principles: always use localization for UI text, never hardcode colors/fonts/sizes, maintain strict separation of concerns between UI and business logic, use onButtonClicked patterns for user interactions, and ensure widgets are pure and stateless.
 
         - Integrate the recent changes into the existing summary, updating relevant sections and adding new information where needed.
 
@@ -305,12 +311,15 @@ REQUIREMENTS
   * Implementation patterns and practices used consistently
   * Project-specific rules and constraints
   * File organization and structural requirements
+  * Critical architectural principles like separation of concerns, localization requirements, and proper delegation patterns
 
 - Include both high-level architecture AND important implementation details that affect how code should be written.
 
 - Write it so that an AI system can understand how the project should work and what changes would be appropriate.
 
 - Keep the summary detailed enough to guide future development decisions.
+
+- Pay special attention to critical architectural principles: always use localization for UI text, never hardcode colors/fonts/sizes, maintain strict separation of concerns between UI and business logic, use onButtonClicked patterns for user interactions, and ensure widgets are pure and stateless.
 
 - Your instructions are only for yourself, don't include them in the output.
 

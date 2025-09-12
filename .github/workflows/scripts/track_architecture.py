@@ -41,11 +41,13 @@ def main():
         should_summarize = firebase_client.should_summarize(repository)
         print(f"Should summarize: {should_summarize}", file=sys.stderr)
         
-        # Write outputs to GitHub Actions output file
+        # Write outputs to GitHub Actions output file (strip any carriage returns)
         if 'GITHUB_OUTPUT' in os.environ:
+            clean_should_summarize = str(should_summarize).lower().replace('\r', '').replace('\n', ' ')
+            clean_change_id = str(change_id).replace('\r', '').replace('\n', ' ')
             with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-                fh.write(f"should_summarize={str(should_summarize).lower()}\n")
-                fh.write(f"change_id={change_id}\n")
+                fh.write(f"should_summarize={clean_should_summarize}\n")
+                fh.write(f"change_id={clean_change_id}\n")
         else:
             # Fallback for local testing
             print(f"should_summarize={str(should_summarize).lower()}", file=sys.stderr)
