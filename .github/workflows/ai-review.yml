@@ -325,9 +325,31 @@ jobs:
             if ! git diff --cached --quiet; then
               git commit -m "Update local architecture summary [skip ci]"
               
-              # Push the changes
-              git push origin HEAD:${{ github.head_ref || github.ref_name }}
-              echo "Committed and pushed architecture files"
+              # Pull any remote changes first to avoid non-fast-forward issues
+              echo "Pulling remote changes before pushing..."
+              git pull --rebase origin ${{ github.head_ref || github.ref_name }} || {
+                echo "Rebase failed, trying merge strategy..."
+                git pull --no-rebase origin ${{ github.head_ref || github.ref_name }} || {
+                  echo "Pull failed, will try force push as last resort..."
+                }
+              }
+              
+              # Push the changes with retry logic
+              for i in {1..3}; do
+                if git push origin HEAD:${{ github.head_ref || github.ref_name }}; then
+                  echo "Successfully pushed architecture files on attempt $i"
+                  break
+                elif [ $i -eq 3 ]; then
+                  echo "Failed to push after 3 attempts, trying force push..."
+                  git push --force-with-lease origin HEAD:${{ github.head_ref || github.ref_name }} || {
+                    echo "Force push also failed, architecture files committed locally but not pushed"
+                    exit 0  # Don't fail the workflow
+                  }
+                else
+                  echo "Push attempt $i failed, retrying..."
+                  sleep 5
+                fi
+              done
             else
               echo "No changes to architecture files"
             fi
