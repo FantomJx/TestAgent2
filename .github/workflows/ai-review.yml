@@ -309,6 +309,32 @@ jobs:
           command: |
             python3 .github/workflows/scripts/summarize_architecture.py
 
+      - name: Commit local architecture files
+        if: steps.should_skip.outputs.should_skip == 'false'
+        continue-on-error: true
+        run: |
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Add architecture files if they exist and have changes
+          if [ -f ".github/architecture-summary.json" ] || [ -f ".github/architecture-changes.json" ]; then
+            git add .github/architecture-summary.json .github/architecture-changes.json
+            
+            # Check if there are changes to commit
+            if ! git diff --cached --quiet; then
+              git commit -m "Update local architecture summary [skip ci]"
+              
+              # Push the changes
+              git push origin HEAD:${{ github.head_ref || github.ref_name }}
+              echo "Committed and pushed architecture files"
+            else
+              echo "No changes to architecture files"
+            fi
+          else
+            echo "No architecture files to commit"
+          fi
+
       - name: Fetch architecture context from Firebase
         id: fetch-context
         if: steps.should_skip.outputs.should_skip == 'false'

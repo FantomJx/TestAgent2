@@ -13,6 +13,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cost_tracker import CostTracker
 from ai_review import filter_github_files_from_diff
+from local_architecture import LocalArchitectureManager, create_hybrid_context
 
 
 def detect_important_project_directories(repository_path="."):
@@ -148,6 +149,7 @@ def main():
     try:
         project_name = PROJECT_NAME
         firebase_client = FirebaseClient(project_name=project_name)
+        local_manager = LocalArchitectureManager()
         repository = os.environ['REPOSITORY']
         
         print(f"Summarizing architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
@@ -183,14 +185,16 @@ def main():
             print("No DIFF_FILE_PATH found in environment", file=sys.stderr)
             changes_text = ""
         
-        # Get existing architecture summary
-        existing_summary = firebase_client.get_architecture_summary(repository)
+        # Get existing architecture summary using hybrid approach (local first, Firebase fallback)
+        context = create_hybrid_context(repository, local_manager, firebase_client)
+        existing_summary = context.get('architecture_summary', {})
         old_summary_text = existing_summary.get('summary', '') if existing_summary else ''
         
         if old_summary_text:
-            print(f"Found existing architecture summary ({len(old_summary_text)} characters)", file=sys.stderr)
+            source = context.get('source', 'unknown')
+            print(f"Found existing architecture summary from {source} ({len(old_summary_text)} characters)", file=sys.stderr)
         else:
-            print("No existing architecture summary found", file=sys.stderr)
+            print("No existing architecture summary found (checked both local and Firebase)", file=sys.stderr)
         
         # Collect the entire codebase for comprehensive architecture analysis (only for new projects)
         codebase_content = ""
@@ -380,13 +384,28 @@ Provide the architecture analysis below:
             print(f"Full response: {response}", file=sys.stderr)
             exit(1)
         
-        # Update the architecture summary in Firebase
-        firebase_client.update_architecture_summary(
+        # Update the architecture summary in both local and Firebase
+        # Write to local file first (primary storage)
+        local_success = local_manager.write_architecture_summary(
             repository=repository,
             summary=architecture_summary
         )
         
-        print(f"Architecture summary updated for {repository} in project {project_name}", file=sys.stderr)
+        if local_success:
+            print(f"Architecture summary updated locally for {repository}", file=sys.stderr)
+        else:
+            print(f"WARNING: Failed to write local architecture summary", file=sys.stderr)
+        
+        # Also write to Firebase for backup/sync
+        try:
+            firebase_client.update_architecture_summary(
+                repository=repository,
+                summary=architecture_summary
+            )
+            print(f"Architecture summary updated in Firebase for {repository}", file=sys.stderr)
+        except Exception as e:
+            print(f"WARNING: Failed to update Firebase summary (local saved successfully): {e}", file=sys.stderr)
+        
         print(f"Summary: {architecture_summary[:200]}...", file=sys.stderr)
         
         # Add delay to respect rate limits for subsequent API calls

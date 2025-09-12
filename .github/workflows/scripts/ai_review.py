@@ -1,4 +1,5 @@
 from cost_tracker import CostTracker
+from local_architecture import LocalArchitectureManager, create_hybrid_context
 import json
 import os
 import sys
@@ -11,12 +12,39 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def read_architecture_context() -> str:
-    """Read the architecture summary from Firebase context."""
-    # Get architecture context from Firebase (via environment variable)
+    """Read the architecture summary - local files first, Firebase fallback."""
+    try:
+        # Try local files first
+        repository = os.environ.get('GITHUB_REPOSITORY', '')
+        if repository:
+            local_manager = LocalArchitectureManager()
+            
+            # Try to get local context
+            local_summary = local_manager.read_architecture_summary()
+            local_changes = local_manager.get_recent_changes(limit=3)
+            
+            if local_summary and local_summary.get('summary'):
+                print("Using local architecture summary", file=sys.stderr)
+                architecture_summary = local_summary.get('summary', '')
+                
+                # Format recent changes context
+                recent_changes_context = ""
+                for change in local_changes:
+                    pr_num = change.get('pr_number', 'Unknown')
+                    pr_title = change.get('metadata', {}).get('pr_title', 'No title')
+                    recent_changes_context += f"Recent PR #{pr_num}: {pr_title}\n"
+                
+                return f"{architecture_summary}\n\n{recent_changes_context}"
+    
+    except Exception as e:
+        print(f"Warning: Local architecture reading failed: {e}", file=sys.stderr)
+    
+    # Fallback to Firebase (via environment variable)
+    print("Falling back to Firebase architecture context", file=sys.stderr)
     architecture_context_b64 = os.environ.get('ARCHITECTURE_CONTEXT_B64')
     
     if not architecture_context_b64:
-        return "No architecture summary available."
+        return "No architecture summary available (checked both local and Firebase)."
     
     try:
         context_json = base64.b64decode(architecture_context_b64).decode('utf-8')
@@ -31,7 +59,7 @@ def read_architecture_context() -> str:
         return f"{architecture_summary}\n\n{recent_changes_context}"
     except Exception as e:
         print(
-            f"Warning: Could not decode architecture context: {e}", file=sys.stderr)
+            f"Warning: Could not decode Firebase architecture context: {e}", file=sys.stderr)
         return "Error decoding architecture context."
 
 
