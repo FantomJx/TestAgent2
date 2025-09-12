@@ -171,9 +171,9 @@ jobs:
             CUSTOM_AI_PROMPT=""
             
             # Extract custom prompt from PR template format
-            if echo "$PR_BODY" | grep -q "\*\* Additional prompt instructions:\*\*"; then
+            if echo "$PR_BODY" | grep -q "\*\*Additional prompt instructions:\*\*"; then
               # Extract text between ``` blocks after the prompt instructions
-              CUSTOM_AI_PROMPT=$(echo "$PR_BODY" | sed -n '/\*\* Additional prompt instructions:\*\*/,/```/{/```/,/```/{/```/d; p}}' | sed '/^$/d' | tr '\n' ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+              CUSTOM_AI_PROMPT=$(echo "$PR_BODY" | sed -n '/\*\*Additional prompt instructions:\*\*/,/```/{/```/,/```/{/```/d; p}}' | sed '/^$/d' | tr '\n' ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             fi
             
             echo "custom_ai_prompt=$CUSTOM_AI_PROMPT" >> "$GITHUB_OUTPUT"
