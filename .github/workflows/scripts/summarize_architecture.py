@@ -6,10 +6,13 @@ import glob
 from firebase_client import FirebaseClient
 from config import PROJECT_NAME
 import anthropic
+import time
+
 
 # Add the scripts directory to the path for importing cost_tracker
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cost_tracker import CostTracker
+from ai_review import filter_github_files_from_diff
 
 
 def detect_important_project_directories(repository_path="."):
@@ -156,17 +159,28 @@ def main():
         else:
             print("No standard project structure detected", file=sys.stderr)
         
-        # Get the current diff from environment variable
-        diff_b64 = os.environ.get('DIFF_B64', '')
-        if diff_b64:
+        # Get the current diff from file
+        diff_file_path = os.environ.get('DIFF_FILE_PATH', '')
+        is_summary_only = os.environ.get('IS_SUMMARY_ONLY', 'false').lower() == 'true'
+        
+        if diff_file_path:
             try:
-                changes_text = base64.b64decode(diff_b64).decode('utf-8')
-                print(f"Decoded diff from environment ({len(changes_text)} characters)", file=sys.stderr)
+                with open(diff_file_path, 'r', encoding='utf-8') as f:
+                    changes_text = f.read()
+                print(f"Read diff from file ({len(changes_text)} characters)", file=sys.stderr)
+                
+                # Apply the same filtering as AI review to reduce token count
+                print(f"Diff size before filtering: {len(changes_text)} bytes", file=sys.stderr)
+                changes_text = filter_github_files_from_diff(changes_text)
+                print(f"Diff size after filtering: {len(changes_text)} bytes", file=sys.stderr)
+                
+                if is_summary_only:
+                    print("Processing file summary instead of full diff", file=sys.stderr)
             except Exception as e:
-                print(f"Error decoding diff: {e}", file=sys.stderr)
+                print(f"Error reading diff file: {e}", file=sys.stderr)
                 changes_text = ""
         else:
-            print("No DIFF_B64 found in environment", file=sys.stderr)
+            print("No DIFF_FILE_PATH found in environment", file=sys.stderr)
             changes_text = ""
         
         # Get existing architecture summary
@@ -374,6 +388,11 @@ Provide the architecture analysis below:
         
         print(f"Architecture summary updated for {repository} in project {project_name}", file=sys.stderr)
         print(f"Summary: {architecture_summary[:200]}...", file=sys.stderr)
+        
+        # Add delay to respect rate limits for subsequent API calls
+        delay = 120  # 1 minute delay
+        print(f"Waiting {delay} seconds to respect rate limits after architecture summarization...", file=sys.stderr)
+        time.sleep(delay)
         
     except Exception as e:
         print(f"Error summarizing architecture: {e}", file=sys.stderr)

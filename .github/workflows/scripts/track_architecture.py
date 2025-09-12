@@ -13,19 +13,22 @@ def main():
         # Get required environment variables
         repository = os.environ['REPOSITORY']
         pr_number = int(os.environ['PR_NUMBER'])
-        diff_b64 = os.environ['DIFF_B64']
+        diff_file_path = os.environ['DIFF_FILE_PATH']
+        is_summary_only = os.environ.get('IS_SUMMARY_ONLY', 'false').lower() == 'true'
     
         print(f"Tracking architecture for project: {project_name}, repository: {repository}", file=sys.stderr)
         
-        # Decode the diff
-        diff = base64.b64decode(diff_b64).decode('utf-8')
+        # Read the diff from file
+        with open(diff_file_path, 'r', encoding='utf-8') as f:
+            diff = f.read()
         
         # Get additional metadata
         metadata = {
             'head_sha': os.environ.get('HEAD_SHA'),
             'base_sha': os.environ.get('BASE_SHA'),
             'pr_title': os.environ.get('PR_TITLE'),
-            'pr_author': os.environ.get('PR_AUTHOR')
+            'pr_author': os.environ.get('PR_AUTHOR'),
+            'pr_description': os.environ.get('PR_DESCRIPTION', '')
         }
         
         # Add the architecture change to Firebase
@@ -38,8 +41,10 @@ def main():
         
         print(f"Architecture change added with ID: {change_id}", file=sys.stderr)
         
-        # Check if we should regenerate the summary (always true for important changes)
-        should_summarize = firebase_client.should_summarize(repository)
+        # Check if we should regenerate the summary based on diff size and PR description
+        diff_size = len(diff)
+        pr_description = metadata.get('pr_description', '')
+        should_summarize = firebase_client.should_summarize(repository, diff_size=diff_size, pr_description=pr_description)
         print(f"Should summarize: {should_summarize}", file=sys.stderr)
         
         # Write outputs to GitHub Actions output file (strip any carriage returns)
