@@ -128,13 +128,6 @@ def call_claude_api(api_key: str, payload: Dict[str, Any]) -> str:
         return '[]'
 
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
-
-
-
 def create_review_prompt(diff: str, chunk_num: int = None, total_chunks: int = None) -> str:
     """Create the review prompt for the AI model."""
     architecture_context = read_architecture_context()
@@ -155,16 +148,7 @@ def create_review_prompt(diff: str, chunk_num: int = None, total_chunks: int = N
         print(
             f"Using custom AI prompt: {custom_ai_prompt[:100]}{'...' if len(custom_ai_prompt) > 100 else ''}", file=sys.stderr)
 
-<<<<<<< Updated upstream
-    # Truncate diff if it's too large to avoid API limits
-    max_diff_length = 1500000  # Maximum safe limit for Claude Sonnet 4
-    if diff_length > max_diff_length:
-        print(
-            f"WARNING: Diff is very large ({diff_length:,} chars), truncating to {max_diff_length:,} chars", file=sys.stderr)
-        diff = diff[:max_diff_length] + "\n... (diff truncated due to size)"
-=======
     # With smart chunking, we no longer need truncation as chunks are appropriately sized
->>>>>>> Stashed changes
 
     # Build the base prompt
     chunk_context = ""
@@ -229,21 +213,6 @@ def create_review_prompt(diff: str, chunk_num: int = None, total_chunks: int = N
 
 
 
-<<<<<<< Updated upstream
-
-
-def get_ai_review(model: str, diff: str) -> str:
-    """Get AI review for the given diff using Claude model."""
-    prompt = create_review_prompt(diff)
-    
-    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-    if not api_key:
-        print('ANTHROPIC_API_KEY not found', file=sys.stderr)
-        return '[]'
-
-    payload = create_claude_payload(model, prompt)
-    return call_claude_api(api_key, payload)
-=======
 
 
 def get_ai_review_for_chunk(model: str, chunk: str, chunk_num: int, total_chunks: int) -> str:
@@ -306,7 +275,6 @@ def get_ai_review(model: str, diff: str) -> str:
     if len(filtered_diff) <= max_single_chunk_size:
         # Small diff - process as single chunk with retry logic
         print("Processing diff as single chunk", file=sys.stderr)
-
         prompt = create_review_prompt(filtered_diff)
         
         api_key = os.environ.get('ANTHROPIC_API_KEY', '')
@@ -450,7 +418,6 @@ def split_diff_intelligently(diff: str, max_chunk_size: int = 50000) -> list:
         print(f"Chunk {i+1}: {len(chunk):,} chars, {file_count} files", file=sys.stderr)
     
     return chunks
->>>>>>> Stashed changes
 
 
 def filter_github_files_from_diff(diff: str) -> str:
@@ -559,11 +526,6 @@ if __name__ == "__main__":
     model = os.environ.get('MODEL', '')
     has_important_label = os.environ.get(
         'HAS_IMPORTANT_LABEL', 'false').lower() == 'true'
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
-
     if not diff_file_path:
         print('Missing required environment variable: DIFF_FILE_PATH', file=sys.stderr)
         sys.exit(1)

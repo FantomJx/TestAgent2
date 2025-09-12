@@ -137,11 +137,7 @@ jobs:
         with:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
-<<<<<<< Updated upstream
-          ref: ${{ github.event.repository.default_branch }}
-=======
           ref: ${{ github.ref }}
->>>>>>> Stashed changes
 
       - name: Set up Python and install dependencies
         uses: nick-invision/retry@v2
@@ -237,17 +233,6 @@ jobs:
             
             git fetch origin "$BASE_SHA" "$HEAD_SHA"
 
-<<<<<<< Updated upstream
-            DIFF=$(git diff "$BASE_SHA" "$HEAD_SHA" -- . ':(exclude).github/**')
-            echo "diff_b64=$(printf '%s' "$DIFF" | base64 -w0)" >> "$GITHUB_OUTPUT"
-            
-            LINE_COUNT=$(echo "$DIFF" | grep -c '^[+-]' || echo "0")
-            echo "line_count=$LINE_COUNT" >> "$GITHUB_OUTPUT"
-
-      - name: Track architecture changes in Firebase
-        id: track-arch
-        if: steps.should_skip.outputs.should_skip == 'false' && steps.parse-pr-macros.outputs.pr_update_architecture_summary == 'true'
-=======
             # Generate full diff - smart chunking in AI review will handle large diffs
             # Generate full diff excluding only build artifacts and workflows
             DIFF=$(git diff "$BASE_SHA" "$HEAD_SHA" -- . \
@@ -283,31 +268,20 @@ jobs:
                 echo "line_count=0" >> "$GITHUB_OUTPUT"
             fi
 
-
-
       - name: Track architecture changes in Firebase
         id: track-arch
         if: steps.should_skip.outputs.should_skip == 'false'
->>>>>>> Stashed changes
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-
-<<<<<<< Updated upstream
-          DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
-=======
           DIFF_FILE_PATH: ${{ steps.diff.outputs.diff_file_path }}
->>>>>>> Stashed changes
           PR_NUMBER: ${{ steps.pr_info.outputs.pr_number }}
           REPOSITORY: ${{ github.repository }}
           HEAD_SHA: ${{ steps.pr_info.outputs.pr_head_sha }}
           BASE_SHA: ${{ steps.pr_info.outputs.pr_base_sha }}
           PR_TITLE: ${{ steps.pr_info.outputs.pr_title }}
           PR_AUTHOR: ${{ steps.pr_info.outputs.pr_author }}
-<<<<<<< Updated upstream
-=======
           PR_DESCRIPTION: ${{ steps.pr_info.outputs.pr_body }}
->>>>>>> Stashed changes
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
@@ -317,11 +291,7 @@ jobs:
             python3 .github/workflows/scripts/track_architecture.py
 
       - name: Summarize architecture if needed
-<<<<<<< Updated upstream
-        if: steps.should_skip.outputs.should_skip == 'false' && steps.parse-pr-macros.outputs.pr_update_architecture_summary == 'true' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
-=======
         if: steps.should_skip.outputs.should_skip == 'false' && steps.track-arch.outcome == 'success' && contains(steps.track-arch.outputs.should_summarize, 'true')
->>>>>>> Stashed changes
         continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -330,11 +300,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           SHOULD_SUMMARIZE: "true"
           PR_NUMBER: ${{ steps.pr_info.outputs.pr_number }}
-<<<<<<< Updated upstream
-          DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
-=======
           DIFF_FILE_PATH: ${{ steps.diff.outputs.diff_file_path }}
->>>>>>> Stashed changes
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 8
@@ -383,11 +349,7 @@ jobs:
         timeout-minutes: 25
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-<<<<<<< Updated upstream
-          DIFF_B64: ${{ steps.diff.outputs.diff_b64 }}
-=======
           DIFF_FILE_PATH: ${{ steps.diff.outputs.diff_file_path }}
->>>>>>> Stashed changes
           MODEL: ${{ steps.choose-model.outputs.model }}
           HAS_IMPORTANT_LABEL: ${{ steps.choose-model.outputs.has_important_label }}
 
