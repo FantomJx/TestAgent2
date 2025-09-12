@@ -106,18 +106,64 @@ class FirebaseClient:
             logging.error(f"Error getting recent changes: {str(e)}")
             return []
     
-    def should_summarize(self, repository, changes_threshold=None):
-        """Determine if we should regenerate the architecture summary"""
+    def should_summarize(self, repository, diff_size=0, changes_threshold=None, pr_description=""):
+        """Determine if we should regenerate the architecture summary based on existing summary size or PR markers"""
         try:
             doc_ref = self.db.collection(self.project_name).document('architecture_summaries').collection('summaries').document(repository.replace('/', '_'))
             doc = doc_ref.get()
             
             if not doc.exists:
+                print("No existing architecture summary - will create one", file=sys.stderr)
+                return True  # No existing summary - create one
+            
+            # Check if PR description contains architecture summary trigger
+            if pr_description and self._check_pr_description_for_architecture_trigger(pr_description):
+                print("Architecture summary requested in PR description - will regenerate", file=sys.stderr)
                 return True
             
-            # Always summarize when called (since this is only called for important changes)
-            return True
+            # Check the size of the existing summary
+            existing_data = doc.to_dict()
+            existing_summary = existing_data.get('summary', '') if existing_data else ''
+            summary_size = len(existing_summary)
+            
+            # Set threshold for "big" summaries that need regeneration
+            # Default to 13KB of summary content (getting too long)
+            threshold = changes_threshold or 13000  # 13KB
+            
+            if summary_size >= threshold:
+                print(f"Large architecture summary detected ({summary_size} bytes >= {threshold} threshold) - will regenerate summary", file=sys.stderr)
+                return True
+            else:
+                print(f"Architecture summary size OK ({summary_size} bytes < {threshold} threshold) - skipping regeneration", file=sys.stderr)
+                return False
+                
         except Exception as e:
             logging.error(f"Error checking should_summarize: {str(e)}")
             return False
+    
+    def _check_pr_description_for_architecture_trigger(self, pr_description):
+        """Check if PR description contains markers to trigger architecture summary"""
+        if not pr_description:
+            return False
+            
+        # Convert to lowercase for case-insensitive matching
+        description_lower = pr_description.lower()
+        
+        # Check for various trigger patterns
+        trigger_patterns = [
+            "update architecture summary",
+            "regenerate architecture", 
+            "refresh architecture",
+            "architecture summary",
+            "[architecture]",
+            "<!-- architecture -->",
+            "@architecture-summary"
+        ]
+        
+        for pattern in trigger_patterns:
+            if pattern in description_lower:
+                print(f"Found architecture trigger pattern: '{pattern}'", file=sys.stderr)
+                return True
+                
+        return False
 
